@@ -6,12 +6,11 @@
 
 经过两个晚上的业余时间终于初步搞定了，整个过程比较曲折，感谢 zilongshanren 的若干文章，帮助我解决了很多问题。
 
-* 这里要说明几个点
-    1. 对 nodejs 并不熟悉 npm 管理器,之前也没有用过，在 aliyun ubuntu16.04 上面部署 hexo 的时候遇到了一些困难
-安装日志提示 `sh: 1: node: not found` 但是通过 apt 管理器已经安装了 nodejs，后来通过 sudo npm install node 解决，具体原因不详
-    2. 对于 git 托管 blog 的方式尝试了 hexo-deployer-git 但是文档缺乏并不知道部署以后如何在其他地方迁出，或者只是希望在其他 http 服务器的服务路径下签出？
-最后选择了使用 git 托管整个 blog 目录，放到了[[https://github.com/JamesChenFromChina/blog][这里]] 在其他位置签出的时候直接 git clone 然后进入目录使用 npm install hexo --save 安装这里的安装会缺少一些使用 hexo init 安装后附带的插件比如 hexo-server
-如果需要可以使用官方介绍的办法安装插件。 
+*  这里要说明几个点
+    1. 对 nodejs 并不熟悉 npm 管理器,之前也没有用过，在 aliyun ubuntu16.04 上面部署 hexo 的时候遇到了一些困难,安装日志提示 `sh: 1: node: not found` 但是通过 apt 管理器已经安装了 nodejs，后来通过 sudo npm install node 解决，具体原因不详
+    2. 对于 git 托管 blog 的方式尝试了 hexo-deployer-git 但是文档缺乏并不知道部署以后如何在其他地方迁出，或者只是希望在其他 http 服务器的服务路径下签出？最后选择了使用 git 托管整个 blog 目录，放到了[[https://github.com/JamesChenFromChina/blog][这里]] 在其他位置签出的时候直接 git clone 然后进入目录使用 npm install hexo --save 安装这里的安装会缺少一些使用 hexo init 安装后附带的插件比如 hexo-server 如果需要可以使用官方介绍的办法安装插件。
+    3. Orgmode 里面像当前这样有序列表可以通过命令生成，但是如果中间有换行会无法添加可以使用 togger-truncate-lines 折行 spacemacs 里面是 SPC t l
+
     
 
 
