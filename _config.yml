@@ -67,16 +67,16 @@ theme: landscape
 
 # Deployment
 ## Docs: https://hexo.io/docs/deployment.html
-deploy:
-  type: git
-  repo: git@github.com:JamesChenFromChina/blog
-  branch: master
-  message: update blog
-  name: chenpeng
-  email: chenppengsmail@qq.com
-  extend_dirs: /
-  ignore_hidden: false # default is true
-  ignore_pattern: regexp  # whatever file that matches the regexp will be ignored when deploying
+# deploy:
+#   type: git
+#   repo: git@github.com:JamesChenFromChina/blog
+#   branch: master
+#   message: update blog
+#   name: chenpeng
+#   email: chenppengsmail@qq.com
+#   extend_dirs: /
+#   ignore_hidden: false # default is true
+#   ignore_pattern: regexp  # whatever file that matches the regexp will be ignored when deploying
 
 org:
   emacs: 'emacs'
