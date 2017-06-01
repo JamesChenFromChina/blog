@@ -1,8 +1,8 @@
 #+TITLE: Org-mode 学习总结
 #+DATE: 2017-05-18
 #+LAYOUT: post
-#+TAGS:
-#+CATEGORIES:
+#+TAGS: emacs org spacsmacs
+#+CATEGORIES: emacs
 
 * 什么是 Org-mode
   Org 是 emacs 中（现在也有独立的应用可以使用这种格式）的一个模式，用于通过纯文本格式快速高效的维护笔记、

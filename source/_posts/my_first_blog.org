@@ -1,7 +1,7 @@
 #+TITLE: 第一篇使用 spacemacs+orgmode+hexo 写的博客
 #+DATE: 2017-05-18
 #+LAYOUT: post
-#+TAGS: emacs,spacsmacs,orgmode,hexo
+#+TAGS: emacs,spacsmacs,org,hexo
 #+CATEGORIES: emacs
 
 经过两个晚上的业余时间终于初步搞定了，整个过程比较曲折，感谢 zilongshanren 的若干文章，帮助我解决了很多问题。
