@@ -67,9 +67,21 @@ pagination_dir: page
 
 theme: next
 scheme: Pisces
+highlight_theme: night bright
 
-archives: archives
-about: about
+menu:
+  home: /
+  archives: /archives
+  categories: /categories
+  about: /about
+  tags: /tags
+
+social:
+  GitHub: https://github.com/JamesChenFromChina
+
+social_icons:
+  enable: true
+  GitHub: github
 
 
 
