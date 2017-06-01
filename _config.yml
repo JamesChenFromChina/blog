@@ -7,7 +7,7 @@ title: Hexo
 subtitle:
 description: Personal Blog
 author: JamesChen
-language:
+language: zh-Hans
 timezone:
 
 # URL
@@ -67,7 +67,10 @@ pagination_dir: page
 
 theme: next
 scheme: Pisces
-language: zh-Hans
+
+archives: archives
+about: about
+
 
 
 # Deployment
