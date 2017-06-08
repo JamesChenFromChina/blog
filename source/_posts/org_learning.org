@@ -165,19 +165,19 @@ Org 支持编辑这样的列表和 HTML 导出器（Chapter 12）解析格式化
 ** 链接格式
    Org 将会识别类 URL 的纯文本，并在点的时候激活它。通常的链接格式如下所示
 #+BEGIN_SRC org
-    [[link][description]]
+[[http://www.baidu.com][baidu]]
 #+END_SRC
 
    一旦在 buffer 里面的链接被完成（所有方括号都关闭）Org 将会改变他的显示，就是说 
 #+BEGIN_SRC org
-    [[link][description]]
+    [[http://www.baidu.com][baidu]]
 #+END_SRC
-  会被显示成[[link][description]]
+  会被显示成[[http://www.baidu.com][baidu]]
   
 #+BEGIN_SRC org
-    [[link]]
+    [[http://www.baidu.com]]
 #+END_SRC
-  会被显示成[[link]] 要编辑链接地址，可以在链接上使用命令 C-c C-l
+  会被显示成[[http://www.baidu.com]] 要编辑链接地址，可以在链接上使用命令 C-c C-l
 ** 内部链接
 
 如果链接看上去不像 URL 那样，他就会被视为一个当前文件的内部链接，一个最重要的例子就是
