@@ -1,11 +1,10 @@
 #+TITLE: Org-mode 入门
-#+DATE: 2017-05-18
+#+DATE: 2017-06-09
 #+LAYOUT: post
 #+TAGS: emacs org spacsmacs
 #+CATEGORIES: emacs
 
-
-大概翻译了 The compact Org-mode Guide 但是没有完成 觉得基本够用了，之后如果需要继续翻译完
+大概翻译了[[http://orgmode.org/manual/index.html]] 但是还有一半没有完成 觉得暂时够用了，之后如果需要继续翻译完 Org 很强大 很强大 哈哈哈
 
 * 什么是 Org-mode
   Org 是 emacs 中（现在也有独立的应用可以使用这种格式）的一个模式，用于通过纯文本格式快速高效的维护笔记、
