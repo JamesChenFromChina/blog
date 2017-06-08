@@ -66,24 +66,6 @@ pagination_dir: page
 ## theme: landscape
 
 theme: next
-scheme: Pisces
-highlight_theme: night bright
-
-menu:
-  home: /
-  archives: /archives
-  categories: /categories
-  about: /about
-  tags: /tags
-
-social:
-  GitHub: https://github.com/JamesChenFromChina
-
-social_icons:
-  enable: true
-  GitHub: github
-
-
 
 # Deployment
 ## Docs: https://hexo.io/docs/deployment.html
