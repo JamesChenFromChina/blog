@@ -10,6 +10,10 @@
   Org 是 emacs 中（现在也有独立的应用可以使用这种格式）的一个模式，用于通过纯文本格式快速高效的维护笔记、
 TODO lists、和项目计划,他也是一个写作发布系统且支持嵌入程序源代码（当前这个博客正式通过 Org-mode 编写）。
 
+
+<!-- more -->
+
+
 ** spacemacs 的快捷键调整比较大需要往这里看 [[https://github.com/syl20bnr/spacemacs/tree/master/layers/%2Bemacs/org][Spacemacs Org-mode 快捷键]]
 
 * 文档结构
