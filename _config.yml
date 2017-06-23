@@ -3,10 +3,10 @@
 ## Source: https://github.com/hexojs/hexo/
 
 # Site
-title: Poul.Chen
+title: Paulus.Chen
 subtitle:
 description: Personal Blog
-author: Poul.Chen 
+author: Paulus.Chen 
 language: zh-Hans
 timezone:
 
@@ -84,7 +84,7 @@ org:
   emacs: 'emacs'
   common: |
           #+OPTIONS: toc:nil
-          #+BIND: org-html-postamble \"Last Updated %C.</br> 京ICP备17035882号 %c\"
+          #+BIND: org-html-postamble \"Last Updated %C.</br> %c\"
   cachedir: './hexo-org-cache/'
 
 
