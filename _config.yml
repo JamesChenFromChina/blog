@@ -84,7 +84,7 @@ org:
   emacs: 'emacs'
   common: |
           #+OPTIONS: toc:nil
-          #+BIND: org-html-postamble \"Last Updated %C.</br>Render by <a href='https://github.com/CodeFalling/hexo-renderer-org'>hexo-renderer-org</a> with %c\"
+          #+BIND: org-html-postamble \"Last Updated %C.</br> 京ICP备17035882号 %c\"
   cachedir: './hexo-org-cache/'
 
 

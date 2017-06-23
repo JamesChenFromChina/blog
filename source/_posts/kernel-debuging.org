@@ -1,0 +1,76 @@
+#+TITLE: kernel-debuging
+#+DATE: 2017-06-14
+#+LAYOUT: post
+#+TAGS: kernel linux
+#+CATEGORIES: kernel
+
+
+* Linux 内核学习笔记（一）编译、调试、扩展
+
+    如果把计算机的世界比喻成一个魔法世界，那么 Github 也许就是魔法世界里面的霍格沃兹，而 Donald Ervin Knuth、Dennis MacAlistair Ritchie、RMS、Linus Benedict Torvalds 这些摇滚巨星就像是霍格沃兹里面的教授一般挥动着这个世界的法杖，施展着让人神迷的魔法，改变着这个世界，而 linux kernel 就是这个魔法世界的一块基石，承载着这个迷人的世界。
+    感谢 Robert Love、Wolfgang Mauerer 这些向导，指引了学习的方向。
+    侯杰名言，代码面前了无秘密，然而站在一个很复杂的系统面前，如果它处于一个运转状态，无疑可以提供很多的上下文信息，一方面可以验证一些自己的假设，一方面可以知道一个真实运转的实例是怎样的一个状态，这样可以进一步增强对系统的感性认识。而且也方便自己做一些实验，验证结果，所以我觉得学习内核的第一步就是了解如何编译、调试、扩展内核。
+
+** 内核编译
+*** 内核下载
+    kernel 的官网地址 [[https://www.kernel.org/]] 可以从这里下载最新的稳定版本或者一个指定的版本的源代码。Github 上面的托管地址在这里 [[https://github.com/torvalds/linux]] 可以使用 git clone 克隆这个库，开自己的分支做一些修改。
+
+*** 内核裁剪编译
+    进入下载的内核目录，输入 make defconfig 即可生成默认的内核配置。或者使用 make menuconfig 开启图形化界面配置内核功能，内核内部支持很多特性和驱动，可以在这里进行裁剪。之后使用 make -j16 开始编译，编译的进程数量通过参数-j 给出,可以根据自己的 cpu 数量进行调整
+
+#+NAME: compile kernel
+#+BEGIN_SRC shell
+
+cd linux
+make menuconfig
+make -j16
+
+#+END_SRC
+
+*** 内核调试
+    首先安装 qemu 可以使用 apt 管理器进行安装，或者参考官方文档自行下载编译。
+
+#+BEGIN_SRC shell
+
+sudo apt install qemu
+
+#+END_SRC
+
+安装成功之后，进入已经完成编译的 linux 内核源代码目录，执行
+
+#+BEGIN_SRC shell
+
+qemu-system-x86_64 -S -kernel arch/x86_64/boot/bzImage -m 1024
+
+#+END_SRC
+
+之后会启动 QEMU，但是此时由于使用了-S 参数 CPU 处于暂停状态，点击界面，使用 ctrl+alt+1 切换到输出界面，使用 ctrl+alt+2 切换到控制台，ctrl+alt 唤出鼠标。进入控制台，然后输入 gdbserver tcp::1234 在端口 1234 开启 gdb 服务，用于调试被 QEMU 启动的内核。之后在新的 shell 窗口中进入 linux 内核的目录，使用 gdb vmlinux 加载内核镜像。在 gdb 开启后输入 target remote localhost:1234 连接到刚才由 QEMU 开启的 gdb 调试服务，之后就可以调试内核了。
+
+#+BEGIN_SRC shell
+
+(qemu) gdbserver tcp::1234
+
+#+END_SRC
+
+
+#+BEGIN_SRC shell
+
+$cd linux
+$gdb vmlinux
+
+(gdb)target remote localhost:1234
+(gdb)b start_kernel
+(gdb)continue
+
+#+END_SRC
+
+
+    
+
+
+
+
+
+  
+
+
