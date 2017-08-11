@@ -1,15 +1,29 @@
-title: C++11学习笔记
-date: 2017-08-11
-tags: C++ C++11 cpp
-categories: C++
----
+#+TITLE: C++11学习笔记
+#+DATE: 2017-08-11
+#+LAYOUT: post
+#+TAGS: C++ C++11 cpp
+#+CATEGORIES: C++
 
-# C++语法复习
-## constexpr常量表达式
+
+
+* C++语法复习
+** constexpr常量表达式
    两种使用方式
    1. 使用在常亮声明前,把常量存储在静态存储区，提高安全性。
    2. 使用在函数声明和定义前，制定常量表达式，在函数的所有参数均为常量表达式的时候函数返回一个常量表达式，如果参数非均为常量，则像普通函数一样工作避免了重复定义。 
+   3. 示例如下：
+      
+#+BEGIN_SRC cpp
+constexpr int TestFun(int testval);
 
-## 小细节
+constexpr int TestFun(int testval) {
+    return testval * 2;
+}
+
+constexpr int TestVal = TestFun(2);
+#+END_SRC
+
+
+** 小细节
    抽象函数的调用需要使用指针或引用操作对象的主要原因是执行抽象任务的代码无法判断对象属于那个具体的实现，所以编译器对操作对象需要的空间大小一无所知，无法从栈上分配合理的空间。
    每个含有虚函数的类都含有自己的vtbl用于虚函数的调用，虚函数的调用会抽象成对vtbl指定索引的函数的调用。
