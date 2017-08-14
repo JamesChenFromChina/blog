@@ -23,6 +23,51 @@ constexpr int TestFun(int testval) {
 constexpr int TestVal = TestFun(2);
 #+END_SRC
 
+** alignof(expression) alignas(type or expression)
+   alignof 和 alignas用于内存对齐,提供了更灵活的操作，由于该操作之前在各个系统中基本都有实现,这里做了统一.注意alignas的参数必须是类型或者2的n次幂。
+
+#+BEGIN_SRC cpp
+    constexpr int bufmax = 1024;
+    char buffer1[bufmax];
+    alignas(int) char buffer2[bufmax];  //对齐到 sizeof（int） 倍
+    alignas(8) char buffer3[bufmax];    //对齐到8的整数倍
+    // alignas(3) char buffer3[bufmax];    //编译错误，必须对齐到2的n次幂
+
+    auto ai1 = alignof(buffer1); // ai1 的推断结果为 m 类型 unsigned long
+    auto ai2 = alignof(buffer2);
+    auto ai3 = alignof(buffer3);
+
+    cout<<"alignof(buffer) : "<<ai1<<endl
+        <<"and ai type is : "<<typeid(ai1).name()<<endl
+        <<"buffer addr : 0x"<<ios_base::hex<<reinterpret_cast<uint64_t>(buffer1)<<endl
+        <<"alignof(buffer2) : "<<ai2<<endl
+        <<"buffer2 addr : 0x"<<ios_base::hex<<reinterpret_cast<uint64_t>(buffer2)<<endl
+        <<"type name int : "<<typeid(bufmax).name()<<endl;
+#+END_SRC
+
+** Using　声明别名
+   using和typedef的使用在类型声明上基本一致，但是ｔｙｐｅｄｅｆ无法使用在模板定义中
+
+#+BEGIN_SRC cpp
+
+template <typename T>
+class TestUsing
+{
+    typedef T value_type;
+   public:
+    T add(T a, T b) { return a + b; }
+};
+
+template <typename T>
+using NewName = TestUsing<T>;
+
+typedef TestUsing<int> NewName2;
+
+// template <typename T>
+// typedef TestUsing<T> NewName2;  //编译错误　ｔｙｐｅｄｅｆ不可用于模板, 即定义出的新类型不能使模板。
+
+#+END_SRC
+
 
 ** 小细节
    抽象函数的调用需要使用指针或引用操作对象的主要原因是执行抽象任务的代码无法判断对象属于那个具体的实现，所以编译器对操作对象需要的空间大小一无所知，无法从栈上分配合理的空间。
