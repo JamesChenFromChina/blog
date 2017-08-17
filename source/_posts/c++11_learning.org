@@ -68,6 +68,54 @@ typedef TestUsing<int> NewName2;
 
 #+END_SRC
 
+** 初始化
+*** 初始化器的四种格式
+    1. X a1{v}; //列表初始化
+    2. X a2 = {v}; //列表初始化
+    3. X a3 = v;
+    4. X a4(v);
+*** 列表初始化可以防止窄化转换，这意味着
+   1. 整型和浮点型数据不会向存不下它的方向转化 例如float=>double double!=>float char=>int int!=>char
+   2. 整型和浮点型两种类型的数据不能相互转化 float!=>int int!=>float
+*** 使用ａｕｔｏ声明的对象不应该使用列表初始化，因为类型推断的结果是　ｉｎｉｔｉａｌｉｚｅｒ_list<T>
+*** 使用空列表初始化会使用默认值对对象进行初始化，一般是0值，指针是　ｎｕｌｌｐｔｒ
+**** char buffer[len]{} 将会把buffer中所有的变量初始化成 0 在buffer很大的时候可能会产生性能影响
+      
+*** 如果变量没有指定初始化器则
+    1. 全局变量、名字空间变量、局部static变量和static成员（统称为静态对象）将会执行相应数据类型的列表{}初始化
+    2. 对于局部变量和自由存储上的对象（堆对象）将会使用默认构造函数(是用户自定义类型且存在默认构造函数)或不执行默认初始化（语言内置类型）
+       
+*** 推断类型： auto和decltype（）
+    c++提供了两种从表达式推断数据类型的机制，从编译器返回一个已知的表达式结果的类型
+    1. auto 根据对象的初始化器推断对象的数据类型，对象可能是变量、const或constexpr
+    2. decltype（expr） 推断的对象可能是函数的返回值的类型、类成员的类型和变量的类型
+       
+**** auto 的使用
+     1. auto可以作为初始化器类型的占位符，避免冗余的书写
+     2. auto可以抽象函数中的类型信息，在对象的类型发生变化的时候一定程度上避免函数逻辑受影响，例如 vector类型替换成list类型的迭代循环工作，当然在较大范围内使用auto会影响代码可读性和提高错误定位的难度。
+**** 类型推断
+     1. 我们可以为推断出的类型增加类型说明符和修饰符，比如&或const
+     2. 由于引用类型会自动解引用，所以推断出的类型永远不会是引用类型
+       
+#+BEGIN_SRC cpp
+auto const testValA = 100;
+auto constexpr testValB = 100;
+
+int main(int argc, char *argv[])
+{
+    cout << "type name : " << typeid(decltype(testValA)).name() << endl;
+    auto x = decltype(testValA){10};
+    cout << "type name : " << typeid(decltype(x + 100)).name()
+         << " the value is " << x << endl;
+
+    int a = 100;
+    int &ra = a;
+    auto autora = ra;
+    cout << "Is lvalue reference: " << is_lvalue_reference<decltype(autora)>::value << endl;
+    auto &autorra = ra;
+    cout << "Is lvalue reference: " << is_lvalue_reference<decltype(autorra)>::value << endl;
+}
+#+END_SRC
 
 ** 小细节
    抽象函数的调用需要使用指针或引用操作对象的主要原因是执行抽象任务的代码无法判断对象属于那个具体的实现，所以编译器对操作对象需要的空间大小一无所知，无法从栈上分配合理的空间。
