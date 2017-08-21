@@ -113,9 +113,44 @@ int main(int argc, char *argv[])
     cout << "Is lvalue reference: " << is_lvalue_reference<decltype(autora)>::value << endl;
     auto &autorra = ra;
     cout << "Is lvalue reference: " << is_lvalue_reference<decltype(autorra)>::value << endl;
+
+    // auto autoval{100, 200, 300}; //error :  direct-list-initialization of ‘auto’ requires exactly one element [-fpermissive]
+
+    auto autoval1{100};
+    cout<<"type of autoval1 : "<<typeid(autoval1).name()<<endl;  // i
+    auto autoval2 = {100};
+    cout<<"type of autoval2 : "<<typeid(autoval2).name()<<endl;  // St16initializer_listIiE
+    auto autoval3 = {100, 200, 300};
+    cout << "type of autoval3 : " << typeid(autoval3).name() << endl; // St16initializer_listIiE
+
+
 }
 #+END_SRC
 
+** 左值和右值
+   对变量分类的两种属性
+   i: 有身份 在程序中有对象的名字或者存在指针\引用指向该对象， 这样我们可以在后面找到它
+   m: 可移动 能把对象移动出来（要看之后还会不会使用它,剩下的对象处于合法但未指定的状态）
+   根据这两种属性可以将对象分成
+   i => 泛左值
+   i&!m => 左值
+   m => 右值
+   !i&m => 纯右值
+   i&m => 特别值
+   
+** 对象生命周期
+   构造函数结束-》析构函数执行
+   分类：
+   1. 自动对象:在函数中声明的对象，再起定义处被创建，超出作用域后销毁，大多数实现中存储在栈帧中
+   2. 静态对象:在全局作用域、名字空间作用域中声明或在函数或类中以static声明的对象，整个程序运行过程中只被初始化一次，生命周期持续到程序结束，在程序执行过程中地址唯一
+   3. 自由存储对象：通过new和delete直接控制生命周期的对象
+   4. 临时对象：在计算中间结果或存放const实参引用的值的对象，生命周期视具体情况而定，如果该对象被绑定到一个引用上，则生命周期与该引用一致，否则与它所处的完整表达式一致
+   5. 线程局部对象：声明为thread_local的对象随着线程的创建而创建，随着线程的销毁而销毁。
+   数组元素和非静态类成员的生命周期由他们所属的对象决定
+   
+* 类型别名
+  
+   
 * 小细节
   抽象函数的调用需要使用指针或引用操作对象的主要原因是执行抽象任务的代码无法判断对象属于那个具体的实现，所以编译器对操作对象需要的空间大小一无所知，无法从栈上分配合理的空间。
   每个含有虚函数的类都含有自己的vtbl用于虚函数的调用，虚函数的调用会抽象成对vtbl指定索引的函数的调用。
