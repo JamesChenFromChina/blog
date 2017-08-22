@@ -5,6 +5,8 @@
 #+CATEGORIES: C++
 
 
+* CppReference
+  [[http://en.cppreference.com/][CppReference]] 
 
 * constexpr常量表达式
    两种使用方式
@@ -49,7 +51,6 @@ constexpr int TestVal = TestFun(2);
    一般_t后缀表示该类型是另一个类型的别名
 
 #+BEGIN_SRC cpp
-
 template <typename T>
 class TestUsing
 {
@@ -60,21 +61,16 @@ class TestUsing
 
 template <typename T>
 using NewName = TestUsing<T>;
-
 typedef TestUsing<int> NewName2;
-
 // template <typename T>
 // typedef TestUsing<T> NewName2;  //编译错误　ｔｙｐｅｄｅｆ不可用于模板, 即定义出的新类型不能使模板。 
-
 #+END_SRC
 
    *注意:不允许在类型别名前加修饰符（如ｕｎｓｉｇｎｅｄ）*
    
 #+BEGIN_SRC cpp
-
 using Char2 = char;
 unsigned Char2 testval; //(BE147) error: expected initializer before ‘testval’ 
-
 #+END_SRC
 
 * 初始化
@@ -110,30 +106,24 @@ unsigned Char2 testval; //(BE147) error: expected initializer before ‘testval�
 auto const testValA = 100;
 auto constexpr testValB = 100;
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
     cout << "type name : " << typeid(decltype(testValA)).name() << endl;
     auto x = decltype(testValA){10};
     cout << "type name : " << typeid(decltype(x + 100)).name()
          << " the value is " << x << endl;
-
     int a = 100;
     int &ra = a;
     auto autora = ra;
     cout << "Is lvalue reference: " << is_lvalue_reference<decltype(autora)>::value << endl;
     auto &autorra = ra;
     cout << "Is lvalue reference: " << is_lvalue_reference<decltype(autorra)>::value << endl;
-
     // auto autoval{100, 200, 300}; //error :  direct-list-initialization of ‘auto’ requires exactly one element [-fpermissive]
-
     auto autoval1{100};
     cout<<"type of autoval1 : "<<typeid(autoval1).name()<<endl;  // i
     auto autoval2 = {100};
     cout<<"type of autoval2 : "<<typeid(autoval2).name()<<endl;  // St16initializer_listIiE
     auto autoval3 = {100, 200, 300};
     cout << "type of autoval3 : " << typeid(autoval3).name() << endl; // St16initializer_listIiE
-
-
 }
 #+END_SRC
 
@@ -160,12 +150,15 @@ int main(int argc, char *argv[])
    
 * 指针、数组与引用
   *注意无法将函数指针赋予ｖｏｉｄ类型的指针*
+  *想要使用ｖｏｉｄ指针必须先把它转换成其他类型的指针*
+  nullptr值只能被赋予指针，不能被赋予数值类型，从而增加了安全性,尤其是当一组重载函数同一参数位置即可以接收整数参数也可以接收指针类型参数的时候不容易出现歧义
   
 #+BEGIN_SRC cpp
-
     void (*userfun)(const vector<int> &) = user;
     void *testPtr = userfun; //error: invalid conversion from ‘void (*)(const std::vector<int>&)’ to ‘void*’ [-fpermissive]
-
+    int *test = (int *)0; // 合法但是无法为每种类型实现一个NULL 所以c++中的指针实现为 0 或 0L
+    int *test = (int *)123; // 合法 int *test = 123; 不合法不存在合理的类型转换
+    // int *test = (void *)0; // 在C++中不合法，所以C++中的NULL实现为0 或 0L 但是c中的NULL实现为(void *)0
 #+END_SRC
    
 * 小细节
