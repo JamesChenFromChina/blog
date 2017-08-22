@@ -149,10 +149,10 @@ int main(int argc, char *argv[]) {
    数组元素和非静态类成员的生命周期由他们所属的对象决定
    
 * 指针、数组与引用
+** 指针
   *注意无法将函数指针赋予ｖｏｉｄ类型的指针*
-  *想要使用ｖｏｉｄ指针必须先把它转换成其他类型的指针*
+  *想要使用ｖｏｉｄ指针必须先把它转换成其他类型的指针* ,否则编译器不知道如何处理, 包括解引用和 ++
   nullptr值只能被赋予指针，不能被赋予数值类型，从而增加了安全性,尤其是当一组重载函数同一参数位置即可以接收整数参数也可以接收指针类型参数的时候不容易出现歧义
-  申请非自由存储对象数组的时候数组的长度必须是常量表达式（否则编译器无法确定在栈上或者静态存储区上分配内存空间的大小）
   
 #+BEGIN_SRC cpp
 int testPtr() {
@@ -162,7 +162,12 @@ int testPtr() {
     int *test = (int *)123; // 合法 int *test = 123; 不合法不存在合理的类型转换
     // int *test = (void *)0; // 在C++中不合法，所以C++中的NULL实现为0 或 0L 但是c中的NULL实现为(void *)0
 }    
-
+#+END_SRC
+** 数组
+  申请非自由存储对象数组的时候数组的长度必须是常量表达式（否则编译器无法确定在栈上或者静态存储区上分配内存空间的大小）
+  注意在作为参数传递数组的时候形参即使写成数组形式，实际上也会被转换成相应的指针，sizeof的结果会有所不同，所以尽量避免使用数组类型的形参
+  
+#+BEGIN_SRC cpp
 int testArrayParam(uint8_t ta[100]) {
     cout<<"sizeof(ta) in fun:"<<sizeof(ta)<<" typeid(ta):"<<typeid(ta).name()<<endl;
     // sizeof(ta) in fun:8 typeid(ta):Ph
@@ -175,14 +180,36 @@ int main(int argc, char *argv[]) {
     // uint8_t &rtestArray[100] = testArray; // error: declaration of ‘rtestArray’ as array of references
     // uint8_t (&rtestArray)[] = testArray; // error: invalid initialization of reference of type ‘uint8_t (&)[] {aka unsigned char (&)[]}’ from expression of type ‘uint8_t [100] {aka unsigned char [100]}’
     uint8_t (&rtestArray)[100] = testArray;
-
     cout<<"sizeof(ta) in main:"<<sizeof(rtestArray)<<" typeid(ta):"<<typeid(rtestArray).name()<<endl;
     // sizeof(ta) in main:100 typeid(ta):A100_h
     testArrayParam(rtestArray);
+    // uint32_t intArray[2] = {1, 2, 3}; // error: too many initializers for ‘uint32_t [2] {aka unsigned int [2]}’
 }
 
 #+END_SRC
+
+** 字符串
+*** 字面值
+   一个很大的变化是字符串字面值在C++11中是const char* 而且可能被存贮到了只读段，这意味这对字面值常量的修改会造成段错误。标准中使用char*指针接收字面值常量会引发编译错误gcc实现中允许了这种操作.
    
+#+BEGIN_SRC cpp
+int testStr() {
+    char *str = "test string"; // warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings] 之前的版本是合法的c++11要求必须为 const char*
+    str[2] = 'a';    // 这里在gcc version 5.4.0中崩溃了，应该是字符串字面值被存储到了只读存储区
+    char strWritable[] = "test string"; //可修改 但是注意生命周期和上面的不同
+}
+#+END_SRC
+
+*** 原始字符串
+    由于一些类似正则表达式这样的需求，有时候需要频繁在字符串中插入\或者"，在这种情况下原本的字符串常量书写变得十分复杂，原始字符串可以在字面量中插入\和"等字符，而不做特殊解释,简化了相关字符串的输入，在需要输入诸如）"这样的字符串序列的时候可以在引号和括号间插入若干字符序列，起到构造字符串字面量的作用，如下面rawStr2所示。
+
+#+BEGIN_SRC cpp
+int testStr() {
+    const char *rawStr = R"(abcx123\\ "")"; // 原始字符串，转移符和引号按正常字符打印可以插入换行
+    const char *rawStr2 = R"*ab(abcx123\\ "")*ab";
+}
+#+END_SRC
+
 * 小细节
   抽象函数的调用需要使用指针或引用操作对象的主要原因是执行抽象任务的代码无法判断对象属于那个具体的实现，所以编译器对操作对象需要的空间大小一无所知，无法从栈上分配合理的空间。
   每个含有虚函数的类都含有自己的vtbl用于虚函数的调用，虚函数的调用会抽象成对vtbl指定索引的函数的调用。
