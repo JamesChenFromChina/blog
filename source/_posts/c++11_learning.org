@@ -46,6 +46,7 @@ constexpr int TestVal = TestFun(2);
 
 * Using　声明别名
    using和typedef的使用在类型声明上基本一致，但是ｔｙｐｅｄｅｆ无法使用在模板定义中
+   一般_t后缀表示该类型是另一个类型的别名
 
 #+BEGIN_SRC cpp
 
@@ -63,7 +64,16 @@ using NewName = TestUsing<T>;
 typedef TestUsing<int> NewName2;
 
 // template <typename T>
-// typedef TestUsing<T> NewName2;  //编译错误　ｔｙｐｅｄｅｆ不可用于模板, 即定义出的新类型不能使模板。
+// typedef TestUsing<T> NewName2;  //编译错误　ｔｙｐｅｄｅｆ不可用于模板, 即定义出的新类型不能使模板。 
+
+#+END_SRC
+
+   *注意:不允许在类型别名前加修饰符（如ｕｎｓｉｇｎｅｄ）*
+   
+#+BEGIN_SRC cpp
+
+using Char2 = char;
+unsigned Char2 testval; //(BE147) error: expected initializer before ‘testval’ 
 
 #+END_SRC
 
@@ -148,8 +158,15 @@ int main(int argc, char *argv[])
    5. 线程局部对象：声明为thread_local的对象随着线程的创建而创建，随着线程的销毁而销毁。
    数组元素和非静态类成员的生命周期由他们所属的对象决定
    
-* 类型别名
+* 指针、数组与引用
+  *注意无法将函数指针赋予ｖｏｉｄ类型的指针*
   
+#+BEGIN_SRC cpp
+
+    void (*userfun)(const vector<int> &) = user;
+    void *testPtr = userfun; //error: invalid conversion from ‘void (*)(const std::vector<int>&)’ to ‘void*’ [-fpermissive]
+
+#+END_SRC
    
 * 小细节
   抽象函数的调用需要使用指针或引用操作对象的主要原因是执行抽象任务的代码无法判断对象属于那个具体的实现，所以编译器对操作对象需要的空间大小一无所知，无法从栈上分配合理的空间。
