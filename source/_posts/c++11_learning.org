@@ -152,13 +152,35 @@ int main(int argc, char *argv[]) {
   *注意无法将函数指针赋予ｖｏｉｄ类型的指针*
   *想要使用ｖｏｉｄ指针必须先把它转换成其他类型的指针*
   nullptr值只能被赋予指针，不能被赋予数值类型，从而增加了安全性,尤其是当一组重载函数同一参数位置即可以接收整数参数也可以接收指针类型参数的时候不容易出现歧义
+  申请非自由存储对象数组的时候数组的长度必须是常量表达式（否则编译器无法确定在栈上或者静态存储区上分配内存空间的大小）
   
 #+BEGIN_SRC cpp
+int testPtr() {
     void (*userfun)(const vector<int> &) = user;
     void *testPtr = userfun; //error: invalid conversion from ‘void (*)(const std::vector<int>&)’ to ‘void*’ [-fpermissive]
     int *test = (int *)0; // 合法但是无法为每种类型实现一个NULL 所以c++中的指针实现为 0 或 0L
     int *test = (int *)123; // 合法 int *test = 123; 不合法不存在合理的类型转换
     // int *test = (void *)0; // 在C++中不合法，所以C++中的NULL实现为0 或 0L 但是c中的NULL实现为(void *)0
+}    
+
+int testArrayParam(uint8_t ta[100]) {
+    cout<<"sizeof(ta) in fun:"<<sizeof(ta)<<" typeid(ta):"<<typeid(ta).name()<<endl;
+    // sizeof(ta) in fun:8 typeid(ta):Ph
+    return ta[0];
+}
+int main(int argc, char *argv[]) {
+    uint8_t testArray[100];
+    uint8_t testArray2[100];
+    // testArray2 = testArray; // error: invalid array assignment
+    // uint8_t &rtestArray[100] = testArray; // error: declaration of ‘rtestArray’ as array of references
+    // uint8_t (&rtestArray)[] = testArray; // error: invalid initialization of reference of type ‘uint8_t (&)[] {aka unsigned char (&)[]}’ from expression of type ‘uint8_t [100] {aka unsigned char [100]}’
+    uint8_t (&rtestArray)[100] = testArray;
+
+    cout<<"sizeof(ta) in main:"<<sizeof(rtestArray)<<" typeid(ta):"<<typeid(rtestArray).name()<<endl;
+    // sizeof(ta) in main:100 typeid(ta):A100_h
+    testArrayParam(rtestArray);
+}
+
 #+END_SRC
    
 * 小细节
