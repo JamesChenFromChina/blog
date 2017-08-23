@@ -169,6 +169,9 @@ int testPtr() {
 ** 数组
   * 申请非自由存储对象数组的时候数组的长度必须是常量表达式（否则编译器无法确定在栈上或者静态存储区上分配内存空间的大小）
   * 注意在作为参数传递数组的时候形参即使写成数组形式，实际上也会被转换成相应的指针，sizeof的结果会有所不同，所以尽量避免使用数组类型的形参
+  * 假设存在内置数组a和数组有效范围内的整数j则以下表达式等效
+    * a[j] == *(&a[0]+j) == *(a+j) = *(j+a) = j[a]
+    * 注意j[a]
   
 #+BEGIN_SRC cpp
 int testArrayParam(uint8_t ta[100]) {
@@ -187,6 +190,11 @@ int main(int argc, char *argv[]) {
     // sizeof(ta) in main:100 typeid(ta):A100_h
     testArrayParam(rtestArray);
     // uint32_t intArray[2] = {1, 2, 3}; // error: too many initializers for ‘uint32_t [2] {aka unsigned int [2]}’
+
+    char testA[] = "abcd";
+    3[testA] = 'f'; // 不要惊讶 合法。
+    cout<<testA<<endl; // abcf
+
 }
 
 #+END_SRC
