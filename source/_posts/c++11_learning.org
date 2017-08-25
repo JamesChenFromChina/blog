@@ -199,6 +199,57 @@ int main(int argc, char *argv[]) {
 
 #+END_SRC
 
+*** 指针数组和多维数组的小细节
+
+#+BEGIN_SRC cpp
+
+    int testAA[3][3] = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}};
+    int testPA1[] = {1, 2, 3};
+    int testPA2[] = {4, 5, 6};
+    int testPA3[] = {7, 8, 9};
+    int *testPA[] = { testPA1, testPA2, testPA3 };
+
+    cout<<"dump testAA[i]"<<endl;
+    for (int i = 0; i != 9; ++i)
+        cout<<" i : "<<i<<" val : "<<testAA[i]<<endl;
+
+    cout<<"dump testPA[i]"<<endl;
+    for (int i = 0; i != 3; ++i)
+        cout << "i : " << i << " val : " << testPA[i] << endl;
+/*
+dump testAA[i]
+ i : 0 val : 0x7ffea9337120
+ i : 1 val : 0x7ffea933712c
+ i : 2 val : 0x7ffea9337138
+ i : 3 val : 0x7ffea9337144
+ i : 4 val : 0x7ffea9337150
+ i : 5 val : 0x7ffea933715c
+ i : 6 val : 0x7ffea9337168
+ i : 7 val : 0x7ffea9337174
+ i : 8 val : 0x7ffea9337180
+dump testPA[i]
+i : 0 val : 0x7ffea93370d0
+i : 1 val : 0x7ffea93370e0
+i : 2 val : 0x7ffea93370f0
+*/
+
+void testArray2(int (*pArray)[3]) { return ; }
+void testArray3(int **pArray) { return; }
+int testArray1() {
+    int testAA[3][3] = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}}; //这里数组间都插入了4个字节的缝隙，对齐到了16字节，不知道具体原因
+    int testPA1[] = {1, 2, 3};
+    int testPA2[] = {4, 5, 6};
+    int testPA3[] = {7, 8, 9};
+    int *testPA[] = { testPA1, testPA2, testPA3 };
+
+    testArray2(testAA);
+    // testArray3(testAA); // error: cannot convert ‘int (*)[3]’ to ‘int**’ for argument ‘1’ to ‘void testArray3(int**)’
+    // testArray2(testPA); // error: cannot convert ‘int**’ to ‘int (*)[3]’ for argument ‘1’ to ‘void testArray2(int (*)[3])’
+    testArray3(testPA);
+}
+
+#+END_SRC
+
 ** 字符串
 *** 字面值
    一个很大的变化是字符串字面值在C++11中是const char* 而且可能被存贮到了只读段，这意味这对字面值常量的修改会造成段错误。标准中使用char*指针接收字面值常量会引发编译错误gcc实现中允许了这种操作.
