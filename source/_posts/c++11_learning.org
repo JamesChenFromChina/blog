@@ -162,8 +162,19 @@ int testPtr() {
     void (*userfun)(const vector<int> &) = user;
     void *testPtr = userfun; //error: invalid conversion from ‘void (*)(const std::vector<int>&)’ to ‘void*’ [-fpermissive]
     int *test = (int *)0; // 合法但是无法为每种类型实现一个NULL 所以c++中的指针实现为 0 或 0L
-    int *test = (int *)123; // 合法 int *test = 123; 不合法不存在合理的类型转换
+    int *test = (int *)123; // 这个表达式合法 但是int *test = 123; 不合法不存在合理的类型转换123是整型字面量
     // int *test = (void *)0; // 在C++中不合法，所以C++中的NULL实现为0 或 0L 但是c中的NULL实现为(void *)0
+    
+    int a = 100;
+    int *pa = &a;
+    const int *pa1 = &a;
+    // *pa1 = 200; // error: assignment of read-only location ‘* pa1’  //指向的值是常量
+    int const *pa2 = &a;
+    // *pa2 = 300; // error: assignment of read-only location ‘* pa2’  //指向的值是常量
+    pa2 = pa;
+    int *const pa3 = &a;
+    *pa3 = 400;
+    pa3 = pa; // error: assignment of read-only variable ‘pa3’ //指针本身是常量
 }    
 #+END_SRC
 ** 数组
@@ -200,6 +211,9 @@ int main(int argc, char *argv[]) {
 #+END_SRC
 
 *** 指针数组和多维数组的小细节
+    * 二维数组在函数参数传递的时候必须要附带一维的大小，否则编译器会报错。
+    * 指针在进行二维索引的时候 p[x][y] 实际上是做 *(*(p+x)+y)操作，这也说明了为什么二维数组指针需要携带一维维度
+
 
 #+BEGIN_SRC cpp
 
@@ -246,62 +260,87 @@ int testArray1() {
     // testArray3(testAA); // error: cannot convert ‘int (*)[3]’ to ‘int**’ for argument ‘1’ to ‘void testArray3(int**)’
     // testArray2(testPA); // error: cannot convert ‘int**’ to ‘int (*)[3]’ for argument ‘1’ to ‘void testArray2(int (*)[3])’
     testArray3(testPA);
+    
+    int test[2][3];
+    // int *p = test; // error: cannot convert ‘int (*)[3]’ to ‘int*’ in initialization
+    // p[x][y] 执行的操作是 *(*(p+x)+y)
+    int *p = test[0];
+    p[3*1+2] = 1; // test[1][2]; // 对于二维数组也许这样是正确的打开方式, 明显容易出现歧义
 }
 
 #+END_SRC
 
-** 字符串
-*** 字面值
-   一个很大的变化是字符串字面值在C++11中是const char* 而且可能被存贮到了只读段，这意味这对字面值常量的修改会造成段错误。标准中使用char*指针接收字面值常量会引发编译错误gcc实现中允许了这种操作.
-   
-#+BEGIN_SRC cpp
-int testStr() {
-    char *str = "test string"; // warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings] 之前的版本是合法的c++11要求必须为 const char*
-    str[2] = 'a';    // 这里在gcc version 5.4.0中崩溃了，应该是字符串字面值被存储到了只读存储区
-    char strWritable[] = "test string"; //可修改 但是注意生命周期和上面的不同
-}
-#+END_SRC
-
-*** 原始字符串
-    由于一些类似正则表达式这样的需求，有时候需要频繁在字符串中插入\或者"，在这种情况下原本的字符串常量书写变得十分复杂，原始字符串可以在字面量中插入\和"等字符，而不做特殊解释,简化了相关字符串的输入，在需要输入诸如）"这样的字符串序列的时候可以在引号和括号间插入若干字符序列，起到构造字符串字面量的作用，如下面rawStr2所示。
-
-#+BEGIN_SRC cpp
-int testStr() {
-    const char *rawStr = R"(abcx123\\ "")"; // 原始字符串，转移符和引号按正常字符打印可以插入换行
-    const char *rawStr2 = R"*ab(abcx123\\ "")*ab"; // 这里需要注意 "(...)" 格式的原始字符串字面量要求前面的*ab和后面的*ab需要匹配，序列被插入到了引号和括号之间，以避免结束部分和字符串内容重叠 
-}
-#+END_SRC
-
-*** 大字符
-   * 前缀L表示宽字符字面值，通过wchar_t存储，但是编码格式依赖于编译器和具体环境
-
-**** unicode编码字符串常量
-     * 类型
-       1. u8表示使用 unicode8 格式进行编码 (无法用于 u8''，因为可能存储不下？)
-       2. u表示使用 unicode16 格式进行编码
-       3. U表示使用 unicode32 格式进行编码
-     * *注意*
-       * 前缀u和R是有序且区分大小写的
-       * 前缀u实际上已经透露了存储类型（char char16_t char32_t),所以无法同时使用L限定，而且使用的存储类型也不能和wchar_t混用
+*** 字符串
+**** 字面值
+    一个很大的变化是字符串字面值在C++11中是const char* 而且可能被存贮到了只读段，这意味这对字面值常量的修改会造成段错误。标准中使用char*指针接收字面值常量会引发编译错误gcc实现中允许了这种操作.
    
  #+BEGIN_SRC cpp
  int testStr() {
-     const char *testc = "testc";
-     const char *testu8 = u8"testu8";
-     const char *testu8r = u8R"(testu8r)";
-     // const char *testu = u"testu"; // error: cannot convert ‘const char16_t*’ to ‘const char*’ in initialization
-     // const wchar_t *testu1 = u"testu"; // error: cannot convert ‘const char16_t*’ to ‘const wchar_t*’ in initialization
-     const wchar_t *testw = L"testw";
-     // const char16_t *testwc16 = testw; // error: cannot convert ‘const wchar_t*’ to ‘const char16_t*’ in initialization
-
-     const char16_t *testu = u"testu";
-     const char32_t *testU = U"testU";
-     // const char16_t *testlu = Lu"testu"; // ‘Lu’ was not declared in this scope
-     // const char16_t *testul = uL"testu"; // ‘uL’ was not declared in this scope
-     const char16_t *testuR = uR"(testuR)";
+     char *str = "test string"; // warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings] 之前的版本是合法的c++11要求必须为 const char*
+     str[2] = 'a';    // 这里在gcc version 5.4.0中崩溃了，应该是字符串字面值被存储到了只读存储区
+     char strWritable[] = "test string"; //可修改 但是注意生命周期和上面的不同
  }
  #+END_SRC
+
+**** 原始字符串
+     由于一些类似正则表达式这样的需求，有时候需要频繁在字符串中插入\或者"，在这种情况下原本的字符串常量书写变得十分复杂，原始字符串可以在字面量中插入\和"等字符，而不做特殊解释,简化了相关字符串的输入，在需要输入诸如）"这样的字符串序列的时候可以在引号和括号间插入若干字符序列，起到构造字符串字面量的作用，如下面rawStr2所示。
+
+ #+BEGIN_SRC cpp
+ int testStr() {
+     const char *rawStr = R"(abcx123\\ "")"; // 原始字符串，转移符和引号按正常字符打印可以插入换行
+     const char *rawStr2 = R"*ab(abcx123\\ "")*ab"; // 这里需要注意 "(...)" 格式的原始字符串字面量要求前面的*ab和后面的*ab需要匹配，序列被插入到了引号和括号之间，以避免结束部分和字符串内容重叠 
+ }
+ #+END_SRC
+
+**** 大字符
+    * 前缀L表示宽字符字面值，通过wchar_t存储，但是编码格式依赖于编译器和具体环境
+
+***** unicode编码字符串常量
+      * 类型
+        1. u8表示使用 unicode8 格式进行编码 (无法用于 u8''，因为可能存储不下？)
+        2. u表示使用 unicode16 格式进行编码
+        3. U表示使用 unicode32 格式进行编码
+      * *注意*
+        * 前缀u和R是有序且区分大小写的
+        * 前缀u实际上已经透露了存储类型（char char16_t char32_t),所以无法同时使用L限定，而且使用的存储类型也不能和wchar_t混用
+   
+  #+BEGIN_SRC cpp
+  int testStr() {
+      const char *testc = "testc";
+      const char *testu8 = u8"testu8";
+      const char *testu8r = u8R"(testu8r)";
+      // const char *testu = u"testu"; // error: cannot convert ‘const char16_t*’ to ‘const char*’ in initialization
+      // const wchar_t *testu1 = u"testu"; // error: cannot convert ‘const char16_t*’ to ‘const wchar_t*’ in initialization
+      const wchar_t *testw = L"testw";
+      // const char16_t *testwc16 = testw; // error: cannot convert ‘const wchar_t*’ to ‘const char16_t*’ in initialization
+
+      const char16_t *testu = u"testu";
+      const char32_t *testU = U"testU";
+      // const char16_t *testlu = Lu"testu"; // ‘Lu’ was not declared in this scope
+      // const char16_t *testul = uL"testu"; // ‘uL’ was not declared in this scope
+      const char16_t *testuR = uR"(testuR)";
+  }
+  #+END_SRC
+
+** 引用
+*** 引用的作用
+    1. 不存在空引用或未初始化的引用，因此在代码中可以充当对象的别名，一直指向最开始初始化的那个对象
+    2. 语法形式和对象操作相同便于实现运算符重载 （避免了 &x+&y 这种诡异形式）
+    3. 和指针一样存储地址，没有其他额外开销
+*** 引用的分类
+    | 类型          | 说明                   |
+    |---------------+------------------------|
+    | 左值引用      | 可以改变值的对象       |
+    | 左值const引用 | 不可以改变值的对象     |
+    | 右值引用      | 在使用后无需保留的对象 |
+    |---------------+------------------------|
+
+*** 左值引用
 
 * 小细节
   * 抽象函数的调用需要使用指针或引用操作对象的主要原因是执行抽象任务的代码无法判断对象属于那个具体的实现，所以编译器对操作对象需要的空间大小一无所知，无法从栈上分配合理的空间。
   * 每个含有虚函数的类都含有自己的vtbl用于虚函数的调用，虚函数的调用会抽象成对vtbl指定索引的函数的调用。
+  * 用const定义的常量必须在声明的时候初始化，因为后面无法再对其进行赋值
+#+BEGIN_SRC cpp
+    // const int a; // error: uninitialized const ‘a’ [-fpermissive]
+#+END_SRC
