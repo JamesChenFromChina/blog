@@ -329,9 +329,19 @@ i : 2 val : 0x7ffea93370f0
 
 ** 引用
 *** 引用的作用
-    1. 不存在空引用或未初始化的引用，因此在代码中可以充当对象的别名，一直指向最开始初始化的那个对象
-    2. 语法形式和对象操作相同便于实现运算符重载 （避免了 &x+&y 这种诡异形式）
+    1. 不存在空引用或未初始化的引用，因此在代码中可以充当对象的别名，一直指向最开始初始化的那个对象 (非要有空值的话自定义nullx也可以 if（&r == &nullx）很反人类的用法）
+    2. 语法形式和对象操作相同便于实现运算符重载 （避免了 &x+&y 这种诡异形式,本身的运算符重载定义也是语法错误, C++不允许对内置类型的运算符进行重载）
     3. 和指针一样存储地址，没有其他额外开销
+
+#+BEGIN_SRC cpp
+static TestOperator&& operator+(const TestOperator *a, const TestOperator *b) // error: ‘TestOperator&& operator+(const TestOperator*, const TestOperator*)’ must have an argument of class or enumerated type
+{ return TestOperator(); }
+static int operator+(int a, int b) { // error: ‘int operator+(int, int)’ must have an argument of class or enumerated type
+    return a+b;
+}
+
+#+END_SRC       
+
 *** 引用的分类
     | 类型          | 说明                   |
     |---------------+------------------------|
@@ -341,6 +351,102 @@ i : 2 val : 0x7ffea93370f0
     |---------------+------------------------|
 
 *** 左值引用
+    * 引用不是对象，很多情况下没有任何存储空间分配
+    * 不能创建引用数组
+    * *提供给T&的值必须是左值* ，提供给const &T的值不一定非得是左值，有时候不一定是T类型的值
+    * 函数潜在的修改外部传入的引用值可读性比较差，应该尽量使用const引用，返回修改后的值或者在函数名中进行明确标注
+    * 返回引用的函数可以用于赋值的左侧和右侧 比如map的索引运算符重载
+
+#+BEGIN_SRC cpp
+int testReference() {
+    const int &a = 1.0; // 指向的临时变量的生命周期到引用的作用域结束
+    // const int &a{1.0}; // error: narrowing conversion of ‘1.0e+0’ from ‘double’ to ‘int’ inside { } [-Wnarrowing]
+    const int *p = &a;
+    cout<<p<<endl;
+}
+#+END_SRC
+
+*** 右值引用
+    * 右值引用可以绑定到右值，但是不可以绑定到左值
+    * 右值引用的主要意义在于指向临时对象，允许后续用户对其修改，并认为之后不在使用了。通过允许破坏性读取，来避免一些多余的拷贝操作，从而优化性能。
+    * 由于右值引用使用过程中经常会有static_cast<T&&>(x)这样的操作，所以标准库提供了简化函数 move（x）(因为只是为x穿件一个右值引用所以函数名rval(x)可能更合适), move(x) = static_cast<T&&>(x) 
+
+#+BEGIN_SRC cpp
+string f() {}
+int testReference2() {
+    string var;
+    string &r1{var};
+    // string &r2{f()}; // error: invalid initialization of non-const reference of type ‘@#$’ from an rvalue of type ‘#$%#’
+    // string &r3{"test_string"}; // error: invalid initialization of non-const reference of type ‘@#$’ from an rvalue of type ‘#$%#’
+
+    // string &&rr1{var}; // error: cannot bind ‘#$%$’ lvalue to ‘$%#’
+    string &&rr2{f()};
+    string &&rr3{"test_string"};
+    const string &&rr4{f()};
+}
+#+END_SRC
+
+#+BEGIN_SRC cpp
+// 新旧两种风格的swap比较
+template<typename T>
+void swap(T &a, T&b) {
+    T tmp{a};
+    a = b;
+    b = tmp;
+}
+
+template<typename T>
+void new_swap(T &a, T&b) {
+    T tmp{static_cast<T&&>(a)};
+    a = static_cast<T&&>(b); // 可以使用 a = move(b); 替代
+    b = static_cast<T&&>(tmp);
+}
+
+void test() {
+    // 要是想支持右值swap还需要对函数进行重载
+    // new_swap(var,string("123")); // error: invalid initialization of non-const reference of type ‘@#$’ from an rvalue of type ‘@#$@’
+}
+#+END_SRC
+
+*** 引用的引用
+    引用的引用只可以通过using的别名结果获取或模板参数获取，而它实际的类型还是原始类型的引用类型，如int&
+    * using rr_i = int&&;
+    * using lr_i = int&;
+    * using rr_rr_i = rr_i&& => int &&
+    * using lr_rr_i = rr_i&  => int &
+    * using rr_lr_i = lr_i&& => int &
+    * using lr_lr_i = lr_i&  => int &
+    * 上述的规则是左值优先
+
+* 结构体、枚举、联合
+** 结构体
+   * 成员在内存中的顺序一定和声明时候的顺序一致，但是大小却不一定一致（内存对齐）
+   * 结构名从声明时出现开始就可以使用了，但是不可以构建对象，因为编译器无法确定其大小，可以声明他的指针,如链表节点的定义
+   * 多个结构相互引用需要提前声明 struct List；
+   * 为了兼容早期的C语言规定，C++允许在同一作用域内同时声明一个struct和非struct，这时默认使用的是非struct，当想引用struct的时候，需要使用struct关键字注明 class union enum类似
+   * struct是一种特殊的class，他的成员默认访问权限是public
+     
+#+BEGIN_SRC cpp
+struct TestStruct { int a; };
+int TestStruct(struct TestStruct s) { return 0; }
+
+int main(int argc, char *argv[]) {
+    struct TestStruct s;
+    TestStruct(s);
+}
+#+END_SRC
+
+#+BEGIN_SRC cpp
+struct TestStruct {
+    int x; int y;
+    TestStruct(int y,int x) : x(x), y(y) { }
+};
+
+int main(int argc, char *argv[]) {
+    struct TestStruct s{1,2};
+    cout<<"x:"<<s.x<<" y:"<<s.y<<endl; // x:2 y:1
+}
+#+END_SRC
 
 * 小细节
   * 抽象函数的调用需要使用指针或引用操作对象的主要原因是执行抽象任务的代码无法判断对象属于那个具体的实现，所以编译器对操作对象需要的空间大小一无所知，无法从栈上分配合理的空间。
