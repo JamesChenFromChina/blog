@@ -573,7 +573,39 @@ Dump of assembler code for function main(int, char**):
 End of assembler dump.
 */
 #+END_SRC
+
 ** 联合体
+   union是一种特殊的结构体，所有的成员都分配在同一个地址上，一个ｕｎｉｏｎ实际占用的大小和它的最大成员相同，自然同一时刻只能保存一个成员的值。
+   union有很多限制，因为比如复制的时候根本不知道该使用那个复制构造函数云云
+   * *注意* 如果联合中包含了具有用户自定义析构函数等被ｄｅｌｅｔｅ掉的函数，需要在适当的时候显示调用
+     例如
+     1. 类内包含匿名联合其中包含string s对象，则在析构此类对象的时候考虑是否需要s.~string();
+     2. 上例类构造\设置对象的时候是否需要　ｎｅｗ(&s) string(); 显式执行string构造函数
+*** union的限制
+    1. union不能含有虚函数
+    2. union不能含有引用类型的成员
+    3. union不能含有基类
+    4. 如果union的成员含有用户自定义的构造函数，拷贝操作、移动操作或者析构函数则此类函数对ｕｎｉｏｎ来说被ｄｅｌｅｔｅ掉了　ｕｎｉｏｎ类型的对象不能含有这些函数
+    5. 在union的所有成员中,最多只能有一个成员包含类内初始化器
+    6. union不能作为其他类的基类
+       
+*** 匿名联合
+    在类中声明没有名字的联合体会生成一个匿名连个对象，在类的其他成员函数中可以直接使用匿名联合对象内的字段。可以搭配枚举ｔａｇ来更安全的使用联合。
+   
+** 枚举
+
+#+BEGIN_SRC cpp
+union U1 {
+    int a;
+    const char *p{""};
+    int test() {return this->a;}
+};
+int main(int argc, char *argv[]) {
+    U1 u1;
+    cout<<u1.test()<<endl; // 打印ｐ指向的地址
+    // U1 u2{7}; //error: no matching function for call to ‘U1::U1(<brace-enclosed initializer list>)’
+}
+#+END_SRC
 
 
 * 小细节
