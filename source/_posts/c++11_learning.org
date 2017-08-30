@@ -448,6 +448,134 @@ int main(int argc, char *argv[]) {
 }
 #+END_SRC
 
+*** 普通旧数据POD（Plain Old Data)
+    在一些底层或对性能要求比较高的模块中，我们更希望把对象当做纯数据来处理(内存中的连续序列),通常一些高级的语法工具(运行时多态，用户自定义拷贝语句)会让数据变得不纯粹，从而影响操作数据的效率，考虑执行一个拷贝100个元素的数组，需要对每个元素执行拷贝构造函数，对比memcpy可能只是一个移动机器指令。
+**** 为了确保结构是POD的，对象应该满足一下条件
+     1. 不具有复杂的布局（比如含有vptr）
+     2. 不具有非标准拷贝语义（用户自定义）
+     3. 含有一个最普通的默认构造函数
+     4. 本身是内置类型或是POD对象数组
+**** POD必须是属于下列类型的对象
+     1. 标准布局类型
+     2. 平凡可拷贝类型
+     3. 具有平凡默认构造函数的类型
+***** 平凡类型具有一下属性
+      1. 一个平凡默认构造函数
+      2. 平凡拷贝和移动操作
+      * 当一个默认构造函数无须执行任何实际操作时，我们认为他是平凡的（使用=default定义默认构造函数）
+***** 一个类型 *不含有* 以下情况则是 *具有标准布局* 的
+      1. 含有一个非标准布局的非static成员或基类
+      2. 含有virtual函数
+      3. 含有virtual基类
+      4. 含有引用类型的成员
+      5. 其中的非静态数据成员有多种访问修饰符
+      6. 阻止了重要的布局优化
+         1. 在多个基类中都含有非static数据成员
+         2. 在派生类和基类中都含有非static数据成员
+         3. 基类类型与第一个非static数据成员的类型相同
+***** 除非在类型内包含非平凡的拷贝、移动操作或析构函数否则该类型就是 *平凡可拷贝类型*
+***** 让拷贝移动析构函数变得不平凡的原因
+      1. 这些操作是用户自定义的
+      2. 这些操作所属的类含有virtual函数
+      3. 这些操作所属的类含有virtual基类
+      4. 这些操作所属的类含有非平凡的基类或者成员
+         
+**** 标准库POD类型的判断
+     is_pod是一个标准库类型属性谓词，定义在type_traits中通过它可以检验类型是否为POD
+
+
+#+BEGIN_SRC cpp
+struct S0 {};
+struct S1 {int a;};
+struct S2 {int a; S2(int aa):a(aa){}}; // 不是默认构造函数
+struct S3 {int a; S3(int aa):a(aa){} S3(){}}; //是ＰＯＤ 用户自定义默认构造函数
+struct S4 {int a; S4(int aa):a(aa){} S4()=default;};
+struct S5 {virtual void f();}; //虚函数
+struct S6:S1{};
+struct S7:S0{int b;};
+struct S8:S1{int b;}; //不是ＰＯＤ数据既属于Ｓ１也属于Ｓ８
+struct S9:S0,S1 {};
+struct S10 {int a;int b; S10(int b,int a):a(a),b(b){}};
+void S5::f() {}
+template<typename T>
+void PrintPODType() {
+    if (is_pod<T>::value)
+        cout<<typeid(T).name()<<" is POD"<<endl;
+    else
+        cout<<typeid(T).name()<<" is *NOT* POD"<<endl;
+}
+
+int main(int argc, char *argv[]) {
+    PrintPODType<S0>();
+    PrintPODType<S1>();
+    PrintPODType<S2>();
+    PrintPODType<S3>();
+    PrintPODType<S4>();
+    PrintPODType<S5>();
+    PrintPODType<S6>();
+    PrintPODType<S7>();
+    PrintPODType<S8>();
+    PrintPODType<S9>();
+    PrintPODType<S10>();
+}
+
+/*
+2S0 is POD
+2S1 is POD
+2S2 is *NOT* POD
+2S3 is *NOT* POD // 判断错误？　还是说　Ｓ３不是ｐｏｄ？ 这种情况依赖实现？
+2S4 is POD
+2S5 is *NOT* POD
+2S6 is POD
+2S7 is POD
+2S8 is *NOT* POD
+2S9 is POD
+3S10 is *NOT* POD
+*/
+
+#+END_SRC
+
+*** 位域
+    程序中可以通过位域限定成员变量使用的位数,从而提供了对外部布局成员变量命名的方法(比如ＶＭ中是否位脏页只占１个位，可以手动做位操作但是使用位域可以增强可读性)。
+    关于位域需要注意一下几点
+    1. 无法获取位域的地址
+    2. 位域虽然可能节省了结构本身的内存占用，但是会显著增加操作它的二进制代码长度和时钟周期，位域本质是编译器生成的位逻辑运算
+    3. 只可以使用整型和枚举类型声明位域
+    4. 可以使用匿名位域占位
+#+BEGIN_SRC cpp
+struct PPN {
+    unsigned int PFN : 22;
+    int : 3;
+    unsigned int CCA : 3;
+    bool nonreachable : 1;
+    bool dirty : 1;
+    bool valid : 1;
+    bool global : 1;
+};
+
+int main(int argc, char *argv[]) {
+    PPN ppn{};
+    ppn.dirty = 1;
+}
+/*
+Dump of assembler code for function main(int, char**):
+   0x000000000040354d <+0>:	push   %rbp
+   0x000000000040354e <+1>:	mov    %rsp,%rbp
+   0x0000000000403551 <+4>:	mov    %edi,-0x14(%rbp)
+   0x0000000000403554 <+7>:	mov    %rsi,-0x20(%rbp)
+=> 0x0000000000403558 <+11>:	movl   $0x0,-0x10(%rbp)
+   0x000000000040355f <+18>:	movzbl -0xd(%rbp),%eax
+   0x0000000000403563 <+22>:	or     $0x20,%eax
+   0x0000000000403566 <+25>:	mov    %al,-0xd(%rbp)
+   0x0000000000403569 <+28>:	mov    $0x0,%eax
+   0x000000000040356e <+33>:	pop    %rbp
+   0x000000000040356f <+34>:	retq   
+End of assembler dump.
+*/
+#+END_SRC
+** 联合体
+
+
 * 小细节
   * 抽象函数的调用需要使用指针或引用操作对象的主要原因是执行抽象任务的代码无法判断对象属于那个具体的实现，所以编译器对操作对象需要的空间大小一无所知，无法从栈上分配合理的空间。
   * 每个含有虚函数的类都含有自己的vtbl用于虚函数的调用，虚函数的调用会抽象成对vtbl指定索引的函数的调用。
