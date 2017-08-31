@@ -808,6 +808,8 @@ int main(int argc, char *argv[]) {
 }
 #+END_SRC
 
+*** for语句
+   * for的死循环可以用for(;;) 无需for(;true;) 似乎 while(true)更符合习惯
    * 以下三个循环等效
      
 #+BEGIN_SRC cpp
