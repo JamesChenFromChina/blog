@@ -607,42 +607,226 @@ int main(int argc, char *argv[]) {
 
 ** 枚举
    有两种类型的枚举
-   1. enum class 它的枚举值名字位于ｅｎｕｍ的作用域内(枚举名字可以通过枚举名：：来明确限定不会和其他枚举内的枚举名重复)，枚举值不会隐式的转换成其他类型。
-   2. plain enum 它的枚举值名字和枚举类型本身位于同一作用域，枚举值可以隐式的被转化成整数。
+*** enum class 它的枚举值名字位于ｅｎｕｍ的作用域内(枚举名字可以通过枚举名：：来明确限定不会和其他枚举内的枚举名重复)，枚举值不会隐式的转换成其他类型。
 
+ #+BEGIN_SRC cpp
+ enum class Light: uint8_t;
+ uint8_t ReadVal(Light &flag) {
+     return static_cast<uint8_t>(flag);
+ }
+ enum class Light: uint8_t { Red, Green, Yellow };
+ enum class Flag : uint8_t {
+     Nil = 0,
+     Red = 1,
+     Yellow = 2,
+     Blue = 4
+ };
+ constexpr Flag operator&(Flag var, Flag flag) { // if(f1 & Flag::Red) { //error: could not convert ‘operator&(f1, (Flag)1u)’ from ‘Flag’ to ‘bool’
+     return static_cast<Flag>(static_cast<char>(var)&static_cast<char>(flag));
+ }
+ constexpr Flag operator|(Flag var, Flag flag) {
+     return static_cast<Flag>(static_cast<char>(var)|static_cast<char>(flag));
+ }
+ int main(int argc, char *argv[]) {
+     // Light s1 = 1; // error: cannot convert ‘int’ to ‘Light’ in initialization
+     // uint8_t i1 = s1; // error: cannot convert ‘Light’ to ‘uint8_t {aka unsigned char}’ in initialization
+     // uint8_t i2 = Light::Red; // error: cannot convert ‘Light’ to ‘uint8_t {aka unsigned char}’ in initialization
+     // Light S2 = Red; // error: ‘Red’ was not declared in this scope
+     Light S3 = Light::Red;
+     // if (S3 == Flag::Red); // error: no match for ‘operator==’ (operand types are ‘Light’ and ‘Flag’)
+     if (S3 == Light::Red);
+     Flag f1 = Flag::Red | Flag::Blue;
+     if((f1 & Flag::Red) != Flag::Nil) {
+         cout<<"f1 has Red"<<endl;
+     }
+     switch(f1) { // warning: enumeration value ‘Blue’ not handled in switch [-Wswitch]
+     case Flag::Red:
+         cout<<"Red"<<endl;
+     case Flag::Yellow:
+         cout<<"Yellow"<<endl;
+     case Flag::Red&Flag::Yellow:
+         cout<<"Red&Yellow"<<endl;
+     }
+     Flag f2 {};
+     cout<<"f2: "<<(int)static_cast<uint8_t>(f2)<<endl;
+     f2 = static_cast<Flag>(1234); //超出范围
+     cout<<"f2: "<<(int)static_cast<uint8_t>(f2)<<endl;
+ }
+ /*
+ f1 has Red
+ f2: 0
+ f2: 210
+ */
+ #+END_SRC
+*** plain enum 它的枚举值名字和枚举类型本身位于同一作用域，枚举值可以隐式的被转化成整数。
+    *对于普通枚举类型，如果没有指定潜在类型，则无法先声明后定义*
+    普通枚举可以匿名
 #+BEGIN_SRC cpp
-enum class Light: uint8_t;
+// enum TestEnum1;  // error: use of enum ‘TestEnum’ without previous declaration
+// enum TestEnum1 { TestEnumA,TestEnumB };
+enum class TestEnum2;
+enum class TestEnum2 { TestEnumA,TestEnumB };
+enum Light : uint8_t;
 uint8_t ReadVal(Light &flag) {
     return static_cast<uint8_t>(flag);
 }
-enum class Light: uint8_t { Red, Green, Yellow };
-enum class Flag : uint8_t {
+enum Light: uint8_t { Red, Green, Yellow };
+enum Flag : uint8_t {
     Nil = 0,
-    Red = 1,
-    Yellow = 2,
-    Blue = 4,
-    Pink = 8,
-    Green = 16
+    // Red = 1, // error: redeclaration of ‘Red’
+    FlagRed = 1,
+    FlagYellow = 2, // error: redeclaration of ‘Yellow’
+    Blue = 4
 };
 constexpr Flag operator&(Flag var, Flag flag) { // if(f1 & Flag::Red) { //error: could not convert ‘operator&(f1, (Flag)1u)’ from ‘Flag’ to ‘bool’
     return static_cast<Flag>(static_cast<char>(var)&static_cast<char>(flag));
 }
-
 constexpr Flag operator|(Flag var, Flag flag) {
     return static_cast<Flag>(static_cast<char>(var)|static_cast<char>(flag));
 }
-
 int main(int argc, char *argv[]) {
-    // Light s1 = 1; // error: cannot convert ‘int’ to ‘Light’ in initialization
-    // uint8_t i1 = s1; // error: cannot convert ‘Light’ to ‘uint8_t {aka unsigned char}’ in initialization
-    // uint8_t i2 = Light::Red; // error: cannot convert ‘Light’ to ‘uint8_t {aka unsigned char}’ in initialization
-    // Light S2 = Red; // error: ‘Red’ was not declared in this scope
+    // Light s1 = 1; // error: invalid conversion from ‘int’ to ‘Light’ [-fpermissive]
+    Light s1;
+    // s1 = 1; // error: invalid conversion from ‘int’ to ‘Light’ [-fpermissive]
+    uint8_t i2 = Light::Red;
+    Light S2 = Red;
+    uint8_t i1 = S2;
     Light S3 = Light::Red;
-    // if (S3 == Flag::Red); // error: no match for ‘operator==’ (operand types are ‘Light’ and ‘Flag’)
+    // if (S3 == Flag::Red); // error: ‘Red’ is not a member of ‘Flag’
     if (S3 == Light::Red);
-    Flag f1 = Flag::Red | Flag::Blue;
-    if((f1 & Flag::Red) == Flag::Nil) {
+    Flag f1 = Flag::FlagRed | Flag::Blue;
+    if((f1 & Flag::FlagRed) != Flag::Nil) {
         cout<<"f1 has Red"<<endl;
+    }
+    switch(f1) { // warning: enumeration value ‘Blue’ not handled in switch [-Wswitch]
+    case Flag::FlagRed:
+        cout<<"Red"<<endl;
+    case Flag::FlagYellow:
+        cout<<"Yellow"<<endl;
+    case Flag::FlagRed&Flag::FlagYellow:
+        cout<<"Red&Yellow"<<endl;
+    }
+    Flag f2 {};
+    cout<<"f2: "<<(int)static_cast<uint8_t>(f2)<<endl;
+    f2 = static_cast<Flag>(1234); //超出范围
+    cout<<"f2: "<<(int)static_cast<uint8_t>(f2)<<endl;
+}
+
+#+END_SRC
+
+* 语句
+  语句是Ｃ＋＋中的一个逻辑执行单元，一般以表达式＋分号构成，也包括{}块，声明和ｆｏｒ等执行流控制语句和try语句块
+** 声明
+   声明的同时执行初始化器，这也就意味着在声明变量的时候初始化可以写的很复杂,在函数内部，由于声明是一个普通的语句，意味着它可以在需要的时候才出现，很大程度减小了未初始化变量存在的可能性，对于常量的初始化这有跟大帮助，可以通过经过一系列计算的结果初始化它，这同时也增加了程序的局部性，可读性更好。
+#+BEGIN_SRC cpp
+class TestInit { public: TestInit() { cout<<"test init"<<endl; } };
+int testinit() {
+    TestInit testobj;
+    return 1;
+}
+static int a = testinit(); //完全可以实现一个注册器
+#+END_SRC
+
+** 分支
+   对于判断的条件表达式，算数类型和指针类型可以隐式转换成bool类型，enum class不可以隐式转换
+
+*** switch
+    * case标签中出现的表达式必须是整型或枚举类型的常量表达式，switch中一个值只能被ｃａｓｅ标签使用一次。
+    * default语句一般用于异常情况的处理或者默认情况的处理，但是对于枚举，如果没有default标签，则编译器会检查switch对没有出现的标签进行警告，在未来可能会扩展枚举值的情况，这样的警告可能会比较有用，所以在switch枚举值的时候可以考虑避免使用ｄｅｆａｕｌｔ
+    * case内可以声明变量，但是不能初始化变量，除非使用{}语句块，在块内初始化
+
+#+BEGIN_SRC cpp
+constexpr int testconstfun(int v) {return v+1;}
+int main(int argc, char *argv[]) {
+    constexpr int testval = 2;
+    int a = 1;
+    switch (a)
+    {
+    case 1:
+        cout<<"1"<<endl; break;
+    case testval:
+        cout<<"2"<<endl; break;
+    case testconstfun(testval):
+        cout<<"3"<<endl; break;
+    // case testconstfun(testval): // error: duplicate case value
+    //     cout<<"can not"<<endl; break;
+    }
+    
+    // double d = 1.0;
+    // switch (d) { // error: switch quantity not an integer
+    // case 1.0: // error: could not convert ‘1.0e+0’ from ‘double’ to ‘<type error>’
+    //         cout<<"1.0"<<endl; break;
+    // }
+    int x = 1;
+    switch (x) {
+    case 3:
+        {
+            int zz = 1;
+        }
+    case 1:
+        int y;
+        // int z = 1; // error: jump to case label [-fpermissive]  note:   crosses initialization of ‘int z’
+    case 2:
+        cout<<"Y:"<<y<<endl; //可以使用但是这个值是未初始化的。
+    }
+}
+#+END_SRC
+
+  * if条件语句中声明的变量可以再ｉｆ和ｅｌｓｅ中使用
+#+BEGIN_SRC cpp
+int get_val(int a) {
+    return a + 1;
+}
+int main(int argc, char *argv[]) {
+
+    if (int a = get_val(1)) {
+        cout<<"a in if: "<<a<<endl;
+    } else {
+        cout<<"a in else: "<<a<<endl;
+    }
+}
+#+END_SRC
+
+** 循环语句
+   * for初始化语句，要么是个声明语句，要么是个表达式语句（不能是{}或者另一个执行流控制语句等）。
+*** 范围for
+    * for(T v:c) 可以理解成对于c中的每个T类型的v对象执行循环体, v必须是个序列这意味着，要不v是内置数组类型，要不v.begin()和v.end()或者begin（v）和end（v）得到的是迭代器
+    * 遍历方法的使用规则
+      1. 优先尝试成员函数begin()和end（）
+      2. 在外层作用域寻找begin（）和end（）成员
+      3. 遍历错误
+    * 对于内置数组T v[N] 编译器使用v和v+N代替begin和end
+    * <iterator> 为所有内置数组和标准库容器提供了begin(c)和end(c) 当然我们可以自己定义begin和end以适应自定义容器
+    * for(T &v:c) 使用引用遍历序列，可以修改序列内对象的值，或避免对象拷贝
+
+#+BEGIN_SRC cpp
+int main(int argc, char *argv[]) {
+    vector<int> testvec{1,2,3,4,5,6,7,8,9};
+    for(const int &v:testvec) {
+        cout<<v<<endl;
+    }
+}
+#+END_SRC
+
+   * 以下三个循环等效
+     
+#+BEGIN_SRC cpp
+int main(int argc, char *argv[]) {
+    vector<int> testvec{1,2,3,4,5,6,7,8,9};
+    cout<<"++++++++++1+++++++++++++"<<endl;
+    for(const int &v:testvec) { cout<<v<<endl; }
+
+    cout<<"++++++++++2+++++++++++++"<<endl;
+    for(auto i = begin(testvec); i != end(testvec); ++i) { cout<<*i<<endl; }
+
+    cout<<"++++++++++3+++++++++++++"<<endl;
+    {
+        auto i = begin(testvec);
+        while (i != end(testvec))
+        {
+            cout << *i << endl;
+            ++i;
+        }
     }
 }
 #+END_SRC
