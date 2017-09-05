@@ -1,0 +1,851 @@
+#+TITLE: C++11学习笔记
+#+DATE: 2017-08-11
+#+LAYOUT: post
+#+TAGS: C++ C++11 cpp
+#+CATEGORIES: C++
+
+
+* CppReference
+  [[http://en.cppreference.com/][CppReference]] 
+
+* constexpr常量表达式
+   两种使用方式
+   1. 使用在常量声明前,把常量存储在静态存储区，提高安全性。
+   2. 使用在函数声明和定义前，制定常量表达式，在函数的所有参数均为常量表达式的时候函数返回一个常量表达式，如果参数非均为常量，则像普通函数一样工作避免了重复定义。 
+   3. 示例如下：
+      
+#+BEGIN_SRC cpp
+constexpr int TestFun(int testval);
+
+constexpr int TestFun(int testval) {
+    return testval * 2;
+}
+
+constexpr int TestVal = TestFun(2);
+#+END_SRC
+
+* alignof(expression) alignas(type or expression)
+   alignof 和 alignas用于内存对齐,提供了更灵活的操作，由于该操作之前在各个系统中基本都有实现,这里做了统一.注意alignas的参数必须是类型或者2的n次幂。
+
+#+BEGIN_SRC cpp
+    constexpr int bufmax = 1024;
+    char buffer1[bufmax];
+    alignas(int) char buffer2[bufmax];  //对齐到 sizeof（int） 倍
+    alignas(8) char buffer3[bufmax];    //对齐到8的整数倍
+    // alignas(3) char buffer3[bufmax];    //编译错误，必须对齐到2的n次幂
+
+    auto ai1 = alignof(buffer1); // ai1 的推断结果为 m 类型 unsigned long
+    auto ai2 = alignof(buffer2);
+    auto ai3 = alignof(buffer3);
+
+    cout<<"alignof(buffer) : "<<ai1<<endl
+        <<"and ai type is : "<<typeid(ai1).name()<<endl
+        <<"buffer addr : 0x"<<ios_base::hex<<reinterpret_cast<uint64_t>(buffer1)<<endl
+        <<"alignof(buffer2) : "<<ai2<<endl
+        <<"buffer2 addr : 0x"<<ios_base::hex<<reinterpret_cast<uint64_t>(buffer2)<<endl
+        <<"type name int : "<<typeid(bufmax).name()<<endl;
+#+END_SRC
+
+* Using　声明别名
+   using和typedef的使用在类型声明上基本一致，但是ｔｙｐｅｄｅｆ无法使用在模板定义中
+   一般_t后缀表示该类型是另一个类型的别名
+
+#+BEGIN_SRC cpp
+template <typename T>
+class TestUsing
+{
+    typedef T value_type;
+   public:
+    T add(T a, T b) { return a + b; }
+};
+
+template <typename T>
+using NewName = TestUsing<T>;
+typedef TestUsing<int> NewName2;
+// template <typename T>
+// typedef TestUsing<T> NewName2;  //编译错误　ｔｙｐｅｄｅｆ不可用于模板, 即定义出的新类型不能使模板。 
+#+END_SRC
+
+   *注意:不允许在类型别名前加修饰符（如ｕｎｓｉｇｎｅｄ）*
+   
+#+BEGIN_SRC cpp
+using Char2 = char;
+unsigned Char2 testval; //(BE147) error: expected initializer before ‘testval’ 
+#+END_SRC
+
+* 初始化
+** 初始化器的四种格式
+   1. X a1{v}; //列表初始化
+   2. X a2 = {v}; //列表初始化
+   3. X a3 = v;
+   4. X a4(v);
+** 列表初始化可以防止窄化转换，这意味着
+  1. 整型和浮点型数据不会向存不下它的方向转化 例如float=>double double!=>float char=>int int!=>char
+  2. 整型和浮点型两种类型的数据不能相互转化 float!=>int int!=>float
+** 使用ａｕｔｏ声明的对象不应该使用列表初始化，因为类型推断的结果可能是　ｉｎｉｔｉａｌｉｚｅｒ_list<T> (在初始化参数是列表的情况下）
+** 使用空列表初始化会使用默认值对对象进行初始化，一般是0值，指针是　ｎｕｌｌｐｔｒ
+*** char buffer[len]{} 将会把buffer中所有的变量初始化成 0 在buffer很大的时候可能会产生性能影响
+      
+** 如果变量没有指定初始化器则
+   1. 全局变量、名字空间变量、局部static变量和static成员（统称为静态对象）将会执行相应数据类型的列表{}初始化
+   2. 对于局部变量和自由存储上的对象（堆对象）将会使用默认构造函数(是用户自定义类型且存在默认构造函数)或不执行默认初始化（语言内置类型）
+       
+** 推断类型： auto和decltype（）
+   c++提供了两种从表达式推断数据类型的机制，从编译器返回一个已知的表达式结果的类型
+   1. auto 根据对象的初始化器推断对象的数据类型，对象可能是变量、const或constexpr
+   2. decltype（expr） 推断的对象可能是函数的返回值的类型、类成员的类型和变量的类型
+       
+*** auto 的使用
+    1. auto可以作为初始化器类型的占位符，避免冗余的书写
+    2. auto可以抽象函数中的类型信息，在对象的类型发生变化的时候一定程度上避免函数逻辑受影响，例如 vector类型替换成list类型的迭代循环工作，当然在较大范围内使用auto会影响代码可读性和提高错误定位的难度。
+*** 类型推断
+     1. 我们可以为推断出的类型增加类型说明符和修饰符，比如&或const
+     2. 由于引用类型会自动解引用，所以推断出的类型永远不会是引用类型
+       
+#+BEGIN_SRC cpp
+auto const testValA = 100;
+auto constexpr testValB = 100;
+
+int main(int argc, char *argv[]) {
+    cout << "type name : " << typeid(decltype(testValA)).name() << endl;
+    auto x = decltype(testValA){10};
+    cout << "type name : " << typeid(decltype(x + 100)).name()
+         << " the value is " << x << endl;
+    int a = 100;
+    int &ra = a;
+    auto autora = ra;
+    cout << "Is lvalue reference: " << is_lvalue_reference<decltype(autora)>::value << endl;
+    auto &autorra = ra;
+    cout << "Is lvalue reference: " << is_lvalue_reference<decltype(autorra)>::value << endl;
+    // auto autoval{100, 200, 300}; //error :  direct-list-initialization of ‘auto’ requires exactly one element [-fpermissive]
+    auto autoval1{100};
+    cout<<"type of autoval1 : "<<typeid(autoval1).name()<<endl;  // i
+    auto autoval2 = {100};
+    cout<<"type of autoval2 : "<<typeid(autoval2).name()<<endl;  // St16initializer_listIiE
+    auto autoval3 = {100, 200, 300};
+    cout << "type of autoval3 : " << typeid(autoval3).name() << endl; // St16initializer_listIiE
+}
+#+END_SRC
+
+** 左值和右值
+   对变量分类的两种属性
+   * i: 有身份 在程序中有对象的名字或者存在指针\引用指向该对象， 这样我们可以在后面找到它
+   * m: 可移动 能把对象移动出来（要看之后还会不会使用它,剩下的对象处于合法但未指定的状态）
+     
+
+   根据这两种属性可以将对象分成
+   * i => 泛左值
+   * i&!m => 左值
+   * m => 右值
+   * !i&m => 纯右值
+   * i&m => 特别值
+   
+** 对象生命周期
+   * 构造函数结束-》析构函数执行
+   * 分类：
+     1. 自动对象:在函数中声明的对象，再起定义处被创建，超出作用域后销毁，大多数实现中存储在栈帧中
+     2. 静态对象:在全局作用域、名字空间作用域中声明或在函数或类中以static声明的对象，整个程序运行过程中只被初始化一次，生命周期持续到程序结束，在程序执行过程中地址唯一
+     3. 自由存储对象：通过new和delete直接控制生命周期的对象
+     4. 临时对象：在计算中间结果或存放const实参引用的值的对象，生命周期视具体情况而定，如果该对象被绑定到一个引用上，则生命周期与该引用一致，否则与它所处的完整表达式一致
+     5. 线程局部对象：声明为thread_local的对象随着线程的创建而创建，随着线程的销毁而销毁。
+
+   * 数组元素和非静态类成员的生命周期由他们所属的对象决定
+   
+* 指针、数组与引用
+** 指针
+  * *注意无法将函数指针赋予ｖｏｉｄ类型的指针*
+  * *想要使用ｖｏｉｄ指针必须先把它转换成其他类型的指针* ,否则编译器不知道如何处理, 包括解引用和 ++
+  * nullptr值只能被赋予指针，不能被赋予数值类型，从而增加了安全性,尤其是当一组重载函数同一参数位置即可以接收整数参数也可以接收指针类型参数的时候不容易出现歧义
+  
+#+BEGIN_SRC cpp
+int testPtr() {
+    void (*userfun)(const vector<int> &) = user;
+    void *testPtr = userfun; //error: invalid conversion from ‘void (*)(const std::vector<int>&)’ to ‘void*’ [-fpermissive]
+    int *test = (int *)0; // 合法但是无法为每种类型实现一个NULL 所以c++中的指针实现为 0 或 0L
+    int *test = (int *)123; // 这个表达式合法 但是int *test = 123; 不合法不存在合理的类型转换123是整型字面量
+    // int *test = (void *)0; // 在C++中不合法，所以C++中的NULL实现为0 或 0L 但是c中的NULL实现为(void *)0
+    
+    int a = 100;
+    int *pa = &a;
+    const int *pa1 = &a;
+    // *pa1 = 200; // error: assignment of read-only location ‘* pa1’  //指向的值是常量
+    int const *pa2 = &a;
+    // *pa2 = 300; // error: assignment of read-only location ‘* pa2’  //指向的值是常量
+    pa2 = pa;
+    int *const pa3 = &a;
+    *pa3 = 400;
+    pa3 = pa; // error: assignment of read-only variable ‘pa3’ //指针本身是常量
+}    
+#+END_SRC
+** 数组
+  * 申请非自由存储对象数组的时候数组的长度必须是常量表达式（否则编译器无法确定在栈上或者静态存储区上分配内存空间的大小）
+  * 注意在作为参数传递数组的时候形参即使写成数组形式，实际上也会被转换成相应的指针，sizeof的结果会有所不同，所以尽量避免使用数组类型的形参
+  * 假设存在内置数组a和数组有效范围内的整数j则以下表达式等效
+    * a[j] == *(&a[0]+j) == *(a+j) = *(j+a) = j[a]
+    * 注意j[a]
+  
+#+BEGIN_SRC cpp
+int testArrayParam(uint8_t ta[100]) {
+    cout<<"sizeof(ta) in fun:"<<sizeof(ta)<<" typeid(ta):"<<typeid(ta).name()<<endl;
+    // sizeof(ta) in fun:8 typeid(ta):Ph
+    return ta[0];
+}
+int main(int argc, char *argv[]) {
+    uint8_t testArray[100];
+    uint8_t testArray2[100];
+    // testArray2 = testArray; // error: invalid array assignment
+    // uint8_t &rtestArray[100] = testArray; // error: declaration of ‘rtestArray’ as array of references
+    // uint8_t (&rtestArray)[] = testArray; // error: invalid initialization of reference of type ‘uint8_t (&)[] {aka unsigned char (&)[]}’ from expression of type ‘uint8_t [100] {aka unsigned char [100]}’
+    uint8_t (&rtestArray)[100] = testArray;
+    cout<<"sizeof(ta) in main:"<<sizeof(rtestArray)<<" typeid(ta):"<<typeid(rtestArray).name()<<endl;
+    // sizeof(ta) in main:100 typeid(ta):A100_h
+    testArrayParam(rtestArray);
+    // uint32_t intArray[2] = {1, 2, 3}; // error: too many initializers for ‘uint32_t [2] {aka unsigned int [2]}’
+
+    char testA[] = "abcd";
+    3[testA] = 'f'; // 不要惊讶 合法。
+    cout<<testA<<endl; // abcf
+
+}
+
+#+END_SRC
+
+*** 指针数组和多维数组的小细节
+    * 二维数组在函数参数传递的时候必须要附带一维的大小，否则编译器会报错。
+    * 指针在进行二维索引的时候 p[x][y] 实际上是做 *(*(p+x)+y)操作，这也说明了为什么二维数组指针需要携带一维维度
+
+#+BEGIN_SRC cpp
+void testArray2(int (*pArray)[3]) { return ; }
+void testArray3(int **pArray) { return; }
+int testArray1() {
+    int testPA1[] = {1, 2, 3};
+    int testPA2[] = {4, 5, 6};
+    int testPA3[] = {7, 8, 9};
+    int *testPA[] = { testPA1, testPA2, testPA3 };
+
+    int testAA[3][3] = {}
+//hexo这里貌似有注入bug，这里不能写普通数组{1, 2, 3}, {4, 5, 6}, {7, 8, 9}; 
+//这里数组间都插入了4个字节的缝隙，对齐到了16字节，不知道具体原因
+    testArray2(testAA);
+    // testArray3(testAA); // error: cannot convert ‘int (*)[3]’ to ‘int**’ for argument ‘1’ to ‘void testArray3(int**)’
+    // testArray2(testPA); // error: cannot convert ‘int**’ to ‘int (*)[3]’ for argument ‘1’ to ‘void testArray2(int (*)[3])’
+    testArray3(testPA);
+}
+#+END_SRC
+
+#+BEGIN_SRC cpp
+    int test[2][3];
+    // int *p = test; // error: cannot convert ‘int (*)[3]’ to ‘int*’ in initialization
+    // p[x][y] 执行的操作是 *(*(p+x)+y)
+    int *p = test[0];
+    p[3*1+2] = 1; // test[1][2]; // 对于二维数组也许这样是正确的打开方式, 明显容易出现歧义
+#+END_SRC
+
+#+BEGIN_SRC cpp
+int testArray() {
+    int testAA[3][3] = {};
+    int testPA1[] = {1, 2, 3};
+    int testPA2[] = {4, 5, 6};
+    int testPA3[] = {7, 8, 9};
+    int *testPA[] = { testPA1, testPA2, testPA3 };
+
+    cout<<"dump testAA[i]"<<endl;
+    for (int i = 0; i != 9; ++i)
+        cout<<" i : "<<i<<" val : "<<testAA[i]<<endl;
+
+    cout<<"dump testPA[i]"<<endl;
+    for (int i = 0; i != 3; ++i)
+        cout << "i : " << i << " val : " << testPA[i] << endl;
+}
+/*
+dump testAA[i]
+ i : 0 val : 0x7ffea9337120 
+ i : 1 val : 0x7ffea933712c testAA + sizeof(int) * 3 * 1
+ i : 2 val : 0x7ffea9337138
+ i : 3 val : 0x7ffea9337144 //out of array
+ i : 4 val : 0x7ffea9337150
+ i : 5 val : 0x7ffea933715c
+ i : 6 val : 0x7ffea9337168
+ i : 7 val : 0x7ffea9337174
+ i : 8 val : 0x7ffea9337180
+dump testPA[i]
+i : 0 val : 0x7ffea93370d0
+i : 1 val : 0x7ffea93370e0
+i : 2 val : 0x7ffea93370f0
+*/
+#+END_SRC
+
+*** 字符串
+**** 字面值
+    一个很大的变化是字符串字面值在C++11中是const char* 而且可能被存贮到了只读段，这意味这对字面值常量的修改会造成段错误。标准中使用char*指针接收字面值常量会引发编译错误gcc实现中允许了这种操作.
+   
+ #+BEGIN_SRC cpp
+ int testStr() {
+     char *str = "test string"; // warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings] 之前的版本是合法的c++11要求必须为 const char*
+     str[2] = 'a';    // 这里在gcc version 5.4.0中崩溃了，应该是字符串字面值被存储到了只读存储区
+     char strWritable[] = "test string"; //可修改 但是注意生命周期和上面的不同
+ }
+ #+END_SRC
+
+**** 原始字符串
+     由于一些类似正则表达式这样的需求，有时候需要频繁在字符串中插入\或者"，在这种情况下原本的字符串常量书写变得十分复杂，原始字符串可以在字面量中插入\和"等字符，而不做特殊解释,简化了相关字符串的输入，在需要输入诸如）"这样的字符串序列的时候可以在引号和括号间插入若干字符序列，起到构造字符串字面量的作用，如下面rawStr2所示。
+
+ #+BEGIN_SRC cpp
+ int testStr() {
+     const char *rawStr = R"(abcx123\\ "")"; // 原始字符串，转移符和引号按正常字符打印可以插入换行
+     const char *rawStr2 = R"*ab(abcx123\\ "")*ab"; // 这里需要注意 "(...)" 格式的原始字符串字面量要求前面的*ab和后面的*ab需要匹配，序列被插入到了引号和括号之间，以避免结束部分和字符串内容重叠 
+ }
+ #+END_SRC
+
+**** 大字符
+    * 前缀L表示宽字符字面值，通过wchar_t存储，但是编码格式依赖于编译器和具体环境
+
+***** unicode编码字符串常量
+      * 类型
+        1. u8表示使用 unicode8 格式进行编码 (无法用于 u8''，因为可能存储不下？)
+        2. u表示使用 unicode16 格式进行编码
+        3. U表示使用 unicode32 格式进行编码
+      * *注意*
+        * 前缀u和R是有序且区分大小写的
+        * 前缀u实际上已经透露了存储类型（char char16_t char32_t),所以无法同时使用L限定，而且使用的存储类型也不能和wchar_t混用
+   
+  #+BEGIN_SRC cpp
+  int testStr() {
+      const char *testc = "testc";
+      const char *testu8 = u8"testu8";
+      const char *testu8r = u8R"(testu8r)";
+      // const char *testu = u"testu"; // error: cannot convert ‘const char16_t*’ to ‘const char*’ in initialization
+      // const wchar_t *testu1 = u"testu"; // error: cannot convert ‘const char16_t*’ to ‘const wchar_t*’ in initialization
+      const wchar_t *testw = L"testw";
+      // const char16_t *testwc16 = testw; // error: cannot convert ‘const wchar_t*’ to ‘const char16_t*’ in initialization
+
+      const char16_t *testu = u"testu";
+      const char32_t *testU = U"testU";
+      // const char16_t *testlu = Lu"testu"; // ‘Lu’ was not declared in this scope
+      // const char16_t *testul = uL"testu"; // ‘uL’ was not declared in this scope
+      const char16_t *testuR = uR"(testuR)";
+  }
+  #+END_SRC
+
+** 引用
+*** 引用的作用
+    1. 不存在空引用或未初始化的引用，因此在代码中可以充当对象的别名，一直指向最开始初始化的那个对象 (非要有空值的话自定义nullx也可以 if（&r == &nullx）很反人类的用法）
+    2. 语法形式和对象操作相同便于实现运算符重载 （避免了 &x+&y 这种诡异形式,本身的运算符重载定义也是语法错误, C++不允许对内置类型的运算符进行重载）
+    3. 和指针一样存储地址，没有其他额外开销
+
+#+BEGIN_SRC cpp
+static TestOperator&& operator+(const TestOperator *a, const TestOperator *b) // error: ‘TestOperator&& operator+(const TestOperator*, const TestOperator*)’ must have an argument of class or enumerated type
+{ return TestOperator(); }
+static int operator+(int a, int b) { // error: ‘int operator+(int, int)’ must have an argument of class or enumerated type
+    return a+b;
+}
+
+#+END_SRC       
+
+*** 引用的分类
+    | 类型          | 说明                   |
+    |---------------+------------------------|
+    | 左值引用      | 可以改变值的对象       |
+    | 左值const引用 | 不可以改变值的对象     |
+    | 右值引用      | 在使用后无需保留的对象 |
+    |---------------+------------------------|
+
+*** 左值引用
+    * 引用不是对象，很多情况下没有任何存储空间分配
+    * 不能创建引用数组
+    * *提供给T&的值必须是左值* ，提供给const &T的值不一定非得是左值，有时候不一定是T类型的值
+    * 函数潜在的修改外部传入的引用值可读性比较差，应该尽量使用const引用，返回修改后的值或者在函数名中进行明确标注
+    * 返回引用的函数可以用于赋值的左侧和右侧 比如map的索引运算符重载
+
+#+BEGIN_SRC cpp
+int testReference() {
+    const int &a = 1.0; // 指向的临时变量的生命周期到引用的作用域结束
+    // const int &a{1.0}; // error: narrowing conversion of ‘1.0e+0’ from ‘double’ to ‘int’ inside { } [-Wnarrowing]
+    const int *p = &a;
+    cout<<p<<endl;
+}
+#+END_SRC
+
+*** 右值引用
+    * 右值引用可以绑定到右值，但是不可以绑定到左值
+    * 右值引用的主要意义在于指向临时对象，允许后续用户对其修改，并认为之后不在使用了。通过允许破坏性读取，来避免一些多余的拷贝操作，从而优化性能。
+    * 由于右值引用使用过程中经常会有static_cast<T&&>(x)这样的操作，所以标准库提供了简化函数 move（x）(因为只是为x穿件一个右值引用所以函数名rval(x)可能更合适), move(x) = static_cast<T&&>(x) 
+
+#+BEGIN_SRC cpp
+string f() {}
+int testReference2() {
+    string var;
+    string &r1{var};
+    // string &r2{f()}; // error: invalid initialization of non-const reference of type ‘@#$’ from an rvalue of type ‘#$%#’
+    // string &r3{"test_string"}; // error: invalid initialization of non-const reference of type ‘@#$’ from an rvalue of type ‘#$%#’
+
+    // string &&rr1{var}; // error: cannot bind ‘#$%$’ lvalue to ‘$%#’
+    string &&rr2{f()};
+    string &&rr3{"test_string"};
+    const string &&rr4{f()};
+}
+#+END_SRC
+
+#+BEGIN_SRC cpp
+// 新旧两种风格的swap比较
+template<typename T>
+void swap(T &a, T&b) {
+    T tmp{a};
+    a = b;
+    b = tmp;
+}
+
+template<typename T>
+void new_swap(T &a, T&b) {
+    T tmp{static_cast<T&&>(a)};
+    a = static_cast<T&&>(b); // 可以使用 a = move(b); 替代
+    b = static_cast<T&&>(tmp);
+}
+
+void test() {
+    // 要是想支持右值swap还需要对函数进行重载
+    // new_swap(var,string("123")); // error: invalid initialization of non-const reference of type ‘@#$’ from an rvalue of type ‘@#$@’
+}
+#+END_SRC
+
+*** 引用的引用
+    引用的引用只可以通过using的别名结果获取或模板参数获取，而它实际的类型还是原始类型的引用类型，如int&
+    * using rr_i = int&&;
+    * using lr_i = int&;
+    * using rr_rr_i = rr_i&& => int &&
+    * using lr_rr_i = rr_i&  => int &
+    * using rr_lr_i = lr_i&& => int &
+    * using lr_lr_i = lr_i&  => int &
+    * 上述的规则是左值优先
+
+* 结构体、枚举、联合
+** 结构体
+   * 成员在内存中的顺序一定和声明时候的顺序一致，但是大小却不一定一致（内存对齐）
+   * 结构名从声明时出现开始就可以使用了，但是不可以构建对象，因为编译器无法确定其大小，可以声明他的指针,如链表节点的定义
+   * 多个结构相互引用需要提前声明 struct List；
+   * 为了兼容早期的C语言规定，C++允许在同一作用域内同时声明一个struct和非struct，这时默认使用的是非struct，当想引用struct的时候，需要使用struct关键字注明 class union enum类似
+   * struct是一种特殊的class，他的成员默认访问权限是public
+     
+#+BEGIN_SRC cpp
+struct TestStruct { int a; };
+int TestStruct(struct TestStruct s) { return 0; }
+
+int main(int argc, char *argv[]) {
+    struct TestStruct s;
+    TestStruct(s);
+}
+#+END_SRC
+
+#+BEGIN_SRC cpp
+struct TestStruct {
+    int x; int y;
+    TestStruct(int y,int x) : x(x), y(y) { }
+};
+
+int main(int argc, char *argv[]) {
+    struct TestStruct s{1,2};
+    cout<<"x:"<<s.x<<" y:"<<s.y<<endl; // x:2 y:1
+}
+#+END_SRC
+
+*** 普通旧数据POD（Plain Old Data)
+    在一些底层或对性能要求比较高的模块中，我们更希望把对象当做纯数据来处理(内存中的连续序列),通常一些高级的语法工具(运行时多态，用户自定义拷贝语句)会让数据变得不纯粹，从而影响操作数据的效率，考虑执行一个拷贝100个元素的数组，需要对每个元素执行拷贝构造函数，对比memcpy可能只是一个移动机器指令。
+**** 为了确保结构是POD的，对象应该满足一下条件
+     1. 不具有复杂的布局（比如含有vptr）
+     2. 不具有非标准拷贝语义（用户自定义）
+     3. 含有一个最普通的默认构造函数
+     4. 本身是内置类型或是POD对象数组
+**** POD必须是属于下列类型的对象
+     1. 标准布局类型
+     2. 平凡可拷贝类型
+     3. 具有平凡默认构造函数的类型
+***** 平凡类型具有一下属性
+      1. 一个平凡默认构造函数
+      2. 平凡拷贝和移动操作
+      * 当一个默认构造函数无须执行任何实际操作时，我们认为他是平凡的（使用=default定义默认构造函数）
+***** 一个类型 *不含有* 以下情况则是 *具有标准布局* 的
+      1. 含有一个非标准布局的非static成员或基类
+      2. 含有virtual函数
+      3. 含有virtual基类
+      4. 含有引用类型的成员
+      5. 其中的非静态数据成员有多种访问修饰符
+      6. 阻止了重要的布局优化
+         1. 在多个基类中都含有非static数据成员
+         2. 在派生类和基类中都含有非static数据成员
+         3. 基类类型与第一个非static数据成员的类型相同
+***** 除非在类型内包含非平凡的拷贝、移动操作或析构函数否则该类型就是 *平凡可拷贝类型*
+***** 让拷贝移动析构函数变得不平凡的原因
+      1. 这些操作是用户自定义的
+      2. 这些操作所属的类含有virtual函数
+      3. 这些操作所属的类含有virtual基类
+      4. 这些操作所属的类含有非平凡的基类或者成员
+         
+**** 标准库POD类型的判断
+     is_pod是一个标准库类型属性谓词，定义在type_traits中通过它可以检验类型是否为POD
+
+
+#+BEGIN_SRC cpp
+struct S0 {};
+struct S1 {int a;};
+struct S2 {int a; S2(int aa):a(aa){}}; // 不是默认构造函数
+struct S3 {int a; S3(int aa):a(aa){} S3(){}}; //是ＰＯＤ 用户自定义默认构造函数
+struct S4 {int a; S4(int aa):a(aa){} S4()=default;};
+struct S5 {virtual void f();}; //虚函数
+struct S6:S1{};
+struct S7:S0{int b;};
+struct S8:S1{int b;}; //不是ＰＯＤ数据既属于Ｓ１也属于Ｓ８
+struct S9:S0,S1 {};
+struct S10 {int a;int b; S10(int b,int a):a(a),b(b){}};
+void S5::f() {}
+template<typename T>
+void PrintPODType() {
+    if (is_pod<T>::value)
+        cout<<typeid(T).name()<<" is POD"<<endl;
+    else
+        cout<<typeid(T).name()<<" is *NOT* POD"<<endl;
+}
+
+int main(int argc, char *argv[]) {
+    PrintPODType<S0>();
+    PrintPODType<S1>();
+    PrintPODType<S2>();
+    PrintPODType<S3>();
+    PrintPODType<S4>();
+    PrintPODType<S5>();
+    PrintPODType<S6>();
+    PrintPODType<S7>();
+    PrintPODType<S8>();
+    PrintPODType<S9>();
+    PrintPODType<S10>();
+}
+
+/*
+2S0 is POD
+2S1 is POD
+2S2 is *NOT* POD
+2S3 is *NOT* POD // 判断错误？　还是说　Ｓ３不是ｐｏｄ？ 这种情况依赖实现？
+2S4 is POD
+2S5 is *NOT* POD
+2S6 is POD
+2S7 is POD
+2S8 is *NOT* POD
+2S9 is POD
+3S10 is *NOT* POD
+*/
+
+#+END_SRC
+
+*** 位域
+    程序中可以通过位域限定成员变量使用的位数,从而提供了对外部布局成员变量命名的方法(比如ＶＭ中是否位脏页只占１个位，可以手动做位操作但是使用位域可以增强可读性)。
+    关于位域需要注意一下几点
+    1. 无法获取位域的地址
+    2. 位域虽然可能节省了结构本身的内存占用，但是会显著增加操作它的二进制代码长度和时钟周期，位域本质是编译器生成的位逻辑运算
+    3. 只可以使用整型和枚举类型声明位域
+    4. 可以使用匿名位域占位
+#+BEGIN_SRC cpp
+struct PPN {
+    unsigned int PFN : 22;
+    int : 3;
+    unsigned int CCA : 3;
+    bool nonreachable : 1;
+    bool dirty : 1;
+    bool valid : 1;
+    bool global : 1;
+};
+
+int main(int argc, char *argv[]) {
+    PPN ppn{};
+    ppn.dirty = 1;
+}
+/*
+Dump of assembler code for function main(int, char**):
+   0x000000000040354d <+0>:	push   %rbp
+   0x000000000040354e <+1>:	mov    %rsp,%rbp
+   0x0000000000403551 <+4>:	mov    %edi,-0x14(%rbp)
+   0x0000000000403554 <+7>:	mov    %rsi,-0x20(%rbp)
+=> 0x0000000000403558 <+11>:	movl   $0x0,-0x10(%rbp)
+   0x000000000040355f <+18>:	movzbl -0xd(%rbp),%eax
+   0x0000000000403563 <+22>:	or     $0x20,%eax
+   0x0000000000403566 <+25>:	mov    %al,-0xd(%rbp)
+   0x0000000000403569 <+28>:	mov    $0x0,%eax
+   0x000000000040356e <+33>:	pop    %rbp
+   0x000000000040356f <+34>:	retq   
+End of assembler dump.
+*/
+#+END_SRC
+
+** 联合体
+   union是一种特殊的结构体，所有的成员都分配在同一个地址上，一个ｕｎｉｏｎ实际占用的大小和它的最大成员相同，自然同一时刻只能保存一个成员的值。
+   union有很多限制，因为比如复制的时候根本不知道该使用那个复制构造函数云云
+   * *注意* 如果联合中包含了具有用户自定义析构函数等被ｄｅｌｅｔｅ掉的函数，需要在适当的时候显示调用
+     例如
+     1. 类内包含匿名联合其中包含string s对象，则在析构此类对象的时候考虑是否需要s.~string();
+     2. 上例类构造\设置对象的时候是否需要　ｎｅｗ(&s) string(); 显式执行string构造函数
+*** union的限制
+    1. union不能含有虚函数
+    2. union不能含有引用类型的成员
+    3. union不能含有基类
+    4. 如果union的成员含有用户自定义的构造函数，拷贝操作、移动操作或者析构函数则此类函数对ｕｎｉｏｎ来说被ｄｅｌｅｔｅ掉了　ｕｎｉｏｎ类型的对象不能含有这些函数
+    5. 在union的所有成员中,最多只能有一个成员包含类内初始化器
+    6. union不能作为其他类的基类
+       
+*** 匿名联合
+    在类中声明没有名字的联合体会生成一个匿名连个对象，在类的其他成员函数中可以直接使用匿名联合对象内的字段。可以搭配枚举ｔａｇ来更安全的使用联合。
+   
+#+BEGIN_SRC cpp
+union U1 {
+    int a;
+    const char *p{""};
+    int test() {return this->a;}
+};
+int main(int argc, char *argv[]) {
+    U1 u1;
+    cout<<u1.test()<<endl; // 打印ｐ指向的地址
+    // U1 u2{7}; //error: no matching function for call to ‘U1::U1(<brace-enclosed initializer list>)’
+}
+#+END_SRC
+
+** 枚举
+   有两种类型的枚举
+*** enum class 它的枚举值名字位于ｅｎｕｍ的作用域内(枚举名字可以通过枚举名：：来明确限定不会和其他枚举内的枚举名重复)，枚举值不会隐式的转换成其他类型。
+
+ #+BEGIN_SRC cpp
+ enum class Light: uint8_t;
+ uint8_t ReadVal(Light &flag) {
+     return static_cast<uint8_t>(flag);
+ }
+ enum class Light: uint8_t { Red, Green, Yellow };
+ enum class Flag : uint8_t {
+     Nil = 0,
+     Red = 1,
+     Yellow = 2,
+     Blue = 4
+ };
+ constexpr Flag operator&(Flag var, Flag flag) { // if(f1 & Flag::Red) { //error: could not convert ‘operator&(f1, (Flag)1u)’ from ‘Flag’ to ‘bool’
+     return static_cast<Flag>(static_cast<char>(var)&static_cast<char>(flag));
+ }
+ constexpr Flag operator|(Flag var, Flag flag) {
+     return static_cast<Flag>(static_cast<char>(var)|static_cast<char>(flag));
+ }
+ int main(int argc, char *argv[]) {
+     // Light s1 = 1; // error: cannot convert ‘int’ to ‘Light’ in initialization
+     // uint8_t i1 = s1; // error: cannot convert ‘Light’ to ‘uint8_t {aka unsigned char}’ in initialization
+     // uint8_t i2 = Light::Red; // error: cannot convert ‘Light’ to ‘uint8_t {aka unsigned char}’ in initialization
+     // Light S2 = Red; // error: ‘Red’ was not declared in this scope
+     Light S3 = Light::Red;
+     // if (S3 == Flag::Red); // error: no match for ‘operator==’ (operand types are ‘Light’ and ‘Flag’)
+     if (S3 == Light::Red);
+     Flag f1 = Flag::Red | Flag::Blue;
+     if((f1 & Flag::Red) != Flag::Nil) {
+         cout<<"f1 has Red"<<endl;
+     }
+     switch(f1) { // warning: enumeration value ‘Blue’ not handled in switch [-Wswitch]
+     case Flag::Red:
+         cout<<"Red"<<endl;
+     case Flag::Yellow:
+         cout<<"Yellow"<<endl;
+     case Flag::Red&Flag::Yellow:
+         cout<<"Red&Yellow"<<endl;
+     }
+     Flag f2 {};
+     cout<<"f2: "<<(int)static_cast<uint8_t>(f2)<<endl;
+     f2 = static_cast<Flag>(1234); //超出范围
+     cout<<"f2: "<<(int)static_cast<uint8_t>(f2)<<endl;
+ }
+ /*
+ f1 has Red
+ f2: 0
+ f2: 210
+ */
+ #+END_SRC
+*** plain enum 它的枚举值名字和枚举类型本身位于同一作用域，枚举值可以隐式的被转化成整数。
+    *对于普通枚举类型，如果没有指定潜在类型，则无法先声明后定义*
+    普通枚举可以匿名
+#+BEGIN_SRC cpp
+// enum TestEnum1;  // error: use of enum ‘TestEnum’ without previous declaration
+// enum TestEnum1 { TestEnumA,TestEnumB };
+enum class TestEnum2;
+enum class TestEnum2 { TestEnumA,TestEnumB };
+enum Light : uint8_t;
+uint8_t ReadVal(Light &flag) {
+    return static_cast<uint8_t>(flag);
+}
+enum Light: uint8_t { Red, Green, Yellow };
+enum Flag : uint8_t {
+    Nil = 0,
+    // Red = 1, // error: redeclaration of ‘Red’
+    FlagRed = 1,
+    FlagYellow = 2, // error: redeclaration of ‘Yellow’
+    Blue = 4
+};
+constexpr Flag operator&(Flag var, Flag flag) { // if(f1 & Flag::Red) { //error: could not convert ‘operator&(f1, (Flag)1u)’ from ‘Flag’ to ‘bool’
+    return static_cast<Flag>(static_cast<char>(var)&static_cast<char>(flag));
+}
+constexpr Flag operator|(Flag var, Flag flag) {
+    return static_cast<Flag>(static_cast<char>(var)|static_cast<char>(flag));
+}
+int main(int argc, char *argv[]) {
+    // Light s1 = 1; // error: invalid conversion from ‘int’ to ‘Light’ [-fpermissive]
+    Light s1;
+    // s1 = 1; // error: invalid conversion from ‘int’ to ‘Light’ [-fpermissive]
+    uint8_t i2 = Light::Red;
+    Light S2 = Red;
+    uint8_t i1 = S2;
+    Light S3 = Light::Red;
+    // if (S3 == Flag::Red); // error: ‘Red’ is not a member of ‘Flag’
+    if (S3 == Light::Red);
+    Flag f1 = Flag::FlagRed | Flag::Blue;
+    if((f1 & Flag::FlagRed) != Flag::Nil) {
+        cout<<"f1 has Red"<<endl;
+    }
+    switch(f1) { // warning: enumeration value ‘Blue’ not handled in switch [-Wswitch]
+    case Flag::FlagRed:
+        cout<<"Red"<<endl;
+    case Flag::FlagYellow:
+        cout<<"Yellow"<<endl;
+    case Flag::FlagRed&Flag::FlagYellow:
+        cout<<"Red&Yellow"<<endl;
+    }
+    Flag f2 {};
+    cout<<"f2: "<<(int)static_cast<uint8_t>(f2)<<endl;
+    f2 = static_cast<Flag>(1234); //超出范围
+    cout<<"f2: "<<(int)static_cast<uint8_t>(f2)<<endl;
+}
+
+#+END_SRC
+
+* 语句
+  语句是Ｃ＋＋中的一个逻辑执行单元，一般以表达式＋分号构成，也包括{}块，声明和ｆｏｒ等执行流控制语句和try语句块
+** 声明
+   声明的同时执行初始化器，这也就意味着在声明变量的时候初始化可以写的很复杂,在函数内部，由于声明是一个普通的语句，意味着它可以在需要的时候才出现，很大程度减小了未初始化变量存在的可能性，对于常量的初始化这有跟大帮助，可以通过经过一系列计算的结果初始化它，这同时也增加了程序的局部性，可读性更好。
+#+BEGIN_SRC cpp
+class TestInit { public: TestInit() { cout<<"test init"<<endl; } };
+int testinit() {
+    TestInit testobj;
+    return 1;
+}
+static int a = testinit(); //完全可以实现一个注册器
+#+END_SRC
+
+** 分支
+   对于判断的条件表达式，算数类型和指针类型可以隐式转换成bool类型，enum class不可以隐式转换
+
+*** switch
+    * case标签中出现的表达式必须是整型或枚举类型的常量表达式，switch中一个值只能被ｃａｓｅ标签使用一次。
+    * default语句一般用于异常情况的处理或者默认情况的处理，但是对于枚举，如果没有default标签，则编译器会检查switch对没有出现的标签进行警告，在未来可能会扩展枚举值的情况，这样的警告可能会比较有用，所以在switch枚举值的时候可以考虑避免使用ｄｅｆａｕｌｔ
+    * case内可以声明变量，但是不能初始化变量，除非使用{}语句块，在块内初始化
+
+#+BEGIN_SRC cpp
+constexpr int testconstfun(int v) {return v+1;}
+int main(int argc, char *argv[]) {
+    constexpr int testval = 2;
+    int a = 1;
+    switch (a)
+    {
+    case 1:
+        cout<<"1"<<endl; break;
+    case testval:
+        cout<<"2"<<endl; break;
+    case testconstfun(testval):
+        cout<<"3"<<endl; break;
+    // case testconstfun(testval): // error: duplicate case value
+    //     cout<<"can not"<<endl; break;
+    }
+    
+    // double d = 1.0;
+    // switch (d) { // error: switch quantity not an integer
+    // case 1.0: // error: could not convert ‘1.0e+0’ from ‘double’ to ‘<type error>’
+    //         cout<<"1.0"<<endl; break;
+    // }
+    int x = 1;
+    switch (x) {
+    case 3:
+        {
+            int zz = 1;
+        }
+    case 1:
+        int y;
+        // int z = 1; // error: jump to case label [-fpermissive]  note:   crosses initialization of ‘int z’
+    case 2:
+        cout<<"Y:"<<y<<endl; //可以使用但是这个值是未初始化的。
+    }
+}
+#+END_SRC
+
+  * if条件语句中声明的变量可以再ｉｆ和ｅｌｓｅ中使用
+#+BEGIN_SRC cpp
+int get_val(int a) {
+    return a + 1;
+}
+int main(int argc, char *argv[]) {
+
+    if (int a = get_val(1)) {
+        cout<<"a in if: "<<a<<endl;
+    } else {
+        cout<<"a in else: "<<a<<endl;
+    }
+}
+#+END_SRC
+
+** 循环语句
+   * for初始化语句，要么是个声明语句，要么是个表达式语句（不能是{}或者另一个执行流控制语句等）。
+*** 范围for
+    * for(T v:c) 可以理解成对于c中的每个T类型的v对象执行循环体, v必须是个序列这意味着，要不v是内置数组类型，要不v.begin()和v.end()或者begin（v）和end（v）得到的是迭代器
+    * 遍历方法的使用规则
+      1. 优先尝试成员函数begin()和end（）
+      2. 在外层作用域寻找begin（）和end（）成员
+      3. 遍历错误
+    * 对于内置数组T v[N] 编译器使用v和v+N代替begin和end
+    * <iterator> 为所有内置数组和标准库容器提供了begin(c)和end(c) 当然我们可以自己定义begin和end以适应自定义容器
+    * for(T &v:c) 使用引用遍历序列，可以修改序列内对象的值，或避免对象拷贝
+
+#+BEGIN_SRC cpp
+int main(int argc, char *argv[]) {
+    vector<int> testvec{1,2,3,4,5,6,7,8,9};
+    for(const int &v:testvec) {
+        cout<<v<<endl;
+    }
+}
+#+END_SRC
+
+*** for语句
+   * for的死循环可以用for(;;) 无需for(;true;) 似乎 while(true)更符合习惯
+   * 以下三个循环等效
+     
+#+BEGIN_SRC cpp
+int main(int argc, char *argv[]) {
+    vector<int> testvec{1,2,3,4,5,6,7,8,9};
+    cout<<"++++++++++1+++++++++++++"<<endl;
+    for(const int &v:testvec) { cout<<v<<endl; }
+
+    cout<<"++++++++++2+++++++++++++"<<endl;
+    for(auto i = begin(testvec); i != end(testvec); ++i) { cout<<*i<<endl; }
+
+    cout<<"++++++++++3+++++++++++++"<<endl;
+    {
+        auto i = begin(testvec);
+        while (i != end(testvec))
+        {
+            cout << *i << endl;
+            ++i;
+        }
+    }
+}
+#+END_SRC
+*** 退出循环
+    * 用于退出循环的语句有 break return throw goto 或者像exit()这么间接的方式
+    * break用于跳出最内层循环或switch
+    * continue语句用于跳转到本次循环的末尾，然后执行递增循环条件语句并检查循环条件
+
+*** go语句
+    * go标签的作用域是标签所处的函数，这意味着你可以跳进跳出块，但是限制是:
+      1. 不能跳过初始化器
+      2. 不能跳入异常处理程序
+    * go语句一个比较有意义的用法是跳出多层的循环语句，不需要逐层判断后逐层break
+* 小细节
+  * 抽象函数的调用需要使用指针或引用操作对象的主要原因是执行抽象任务的代码无法判断对象属于那个具体的实现，所以编译器对操作对象需要的空间大小一无所知，无法从栈上分配合理的空间。
+  * 每个含有虚函数的类都含有自己的vtbl用于虚函数的调用，虚函数的调用会抽象成对vtbl指定索引的函数的调用。
+  * 用const定义的常量必须在声明的时候初始化，因为后面无法再对其进行赋值
+#+BEGIN_SRC cpp
+    // const int a; // error: uninitialized const ‘a’ [-fpermissive]
+#+END_SRC
