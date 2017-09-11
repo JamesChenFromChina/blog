@@ -1,0 +1,24 @@
+#+TITLE: hiredis执行eval命令的问题
+#+DATE: 2017-09-11
+#+LAYOUT: post
+#+TAGS: redis hiredis
+#+CATEGORIES: redis
+
+今天在使用hiredis的时候发现直接使用cmd调用eval的时候内嵌lua脚本会产生错误，在github上面找了下发现了这个问题
+[[https://github.com/redis/hiredis/issues/292]]
+
+#+BEGIN_SRC c
+    char cmd[] = "eval \"local a=redis.call('get',KEYS[1]);if a~='1' then redis.call('set',KEYS[1],'1');return 1;else return 0;end\" 1 UserLock:%s";
+    redisReply *reply = (redisReply*)redisCommand(c, cmd, "zhangsan");
+#+END_SRC
+
+在这个代码中redisCommand在解析cmd中的参数的时候用空格作为分割，所以导致eval无法正常执行
+
+通过解决方案中的方法可以解决，即明确告诉 hiredis lua脚本部分作为参数
+
+#+BEGIN_SRC c
+
+char cmd[] = "local a=redis.call('get',KEYS[1]);if a~='1' then redis.call('set',KEYS[1],'1');return 1;else return 0;end";
+reply = (redisReply*)redisCommand(c, "eval %s 1 UserLock:%s", cmd, "zhangsan");
+
+#+END_SRC
