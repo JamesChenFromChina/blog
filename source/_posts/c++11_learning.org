@@ -966,7 +966,24 @@ int main(int argc, char *argv[]) {
       * 如果被转换成无符号整型，则保留低位，高位被截断
       * 如果被转换成有符号整型，则结果依赖于实现如 signed char sc = 1023 结果可能是127或-1 (gcc是-1)
     * 浮点数类型转换
-      * 一个浮点值可以被转换成其他类型的浮点值，如果原值可以被完全目标类型表示,则结果和原值相同，如果原值在两个相邻的低精度目标值之间，则结果是他们之中的一个，否则结果未定义
+      * 一个浮点值可以被转换成其他类型的浮点值，如果原值可以被完全目标类型表示,则结果和原值相同，如果原值在两个相邻的低精度目标值之间，则结果是他们之中的一个(gcc是四舍五入)，否则结果未定义。
+        
+#+BEGIN_SRC cpp
+    double testd = 0.1234567890123456;
+    float testf = testd;
+    cout<<setprecision(16)<<testd<<endl; // 0.1234567890123456
+    cout<<setprecision(16)<<testf<<endl; // 0.1234567910432816 //这里从第8个有效数字开始被截断，四舍五入进了一位
+    
+    testd = 0.1234567810123456;
+    testf = testd;
+    cout<<setprecision(16)<<testd<<endl; // 0.1234567810123456
+    cout<<setprecision(16)<<testf<<endl; // 0.123456783592701
+
+    testd = 1E300;
+    testf = testd;
+    cout<<testd<<endl; // 1e+300
+    cout<<testf<<endl; // inf
+#+END_SRC
 
 
 * 小细节
