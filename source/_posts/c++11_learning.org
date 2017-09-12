@@ -862,7 +862,7 @@ void testopt2() {
 #+END_SRC
 
 
-** C++提供了两种与常亮有关的概念
+** C++提供了两种与常量有关的概念
    * constexpr: 编译时求值 主要用于编译时求值，优化性能
    * const: 不一定在编译时求值在作用于内不改变其值 主要用于接口中规定不可修改的部分
      * 用常量表达式初始化的 const 可以用在常量表达式中。
@@ -878,8 +878,6 @@ void testopt2() {
    5. 多线程中不存在竞争
    6. 提高性能
 
-
-
 #+BEGIN_SRC cpp
 constexpr int TestFun(int testval) {
     return testval * 2;
@@ -894,21 +892,81 @@ constexpr int xx = x;
 // constexpr string ss = s; // error: constexpr variable cannot have non-literal type 'const string' (aka 'const basic_string<char>') //string 对象无法在编译期决定
 // constexpr int yy = y; // error: constexpr variable 'yy' must be initialized by a constant expression // x 不是 constexpr
 
-
 #+END_SRC
 
-
-*** constexpr 常量函数
-   使用在函数声明和定义前，制定常量表达式，在函数的所有参数均为常量表达式的时候函数返回一个常量表达式，如果参数非均为常量，则像普通函数一样工作避免了重复定义。 
+   * 使用在函数声明和定义前，制定常量表达式，在函数的所有参数均为常量表达式的时候函数返回一个常量表达式，如果参数非均为常量，则像普通函数一样工作避免了重复定义。 
+   * 含有constexpr构造函数的类称为字面值常量类型，构造函数必须足够简单才能被声明成constexpr，简单意味着，构造函数的函数体为空，且所有的成员都是用潜在的常量表达式初始化的。（或者干脆不提供构造函数，完全使用列表初始化）
+   * 注意 constexpr的成员函数同时是const的
+   * 在使用constexpr的时候任何对象都无法改变值或者造成什么其他影响(编译时使用微型函数式语言)
       
 #+BEGIN_SRC cpp
-constexpr int TestFun(int testval);
+constexpr int isqrt_helper(int sq, int d, int a) { return sq <= a ? isqrt_helper(sq+d,d+2,a):d; }
+constexpr int isqrt(int x) { return isqrt_helper(1,3,x)/2 - 1; }
 
-constexpr int TestFun(int testval) {
-    return testval * 2;
+struct Point {
+    int x,y,z;
+    constexpr Point (int px, int py) : x(px),y(py), z(0) { }
+    // constexpr Point (int px, int py) : x(px),y(py) { } // error: member ‘Point::z’ must be initialized by mem-initializer in ‘constexpr’ constructor
+    constexpr Point (int px, int py, int pz) : x(px),y(py),z(pz) { }
+    constexpr Point up(int d) { return {x,y,z+d}; }
+    constexpr Point move(int dx,int dy) { // There need not 'const'
+        // this->x += 100; //error: assignment of member ‘Point::x’ in read-only object
+        return {x+dx, y+dy, z};
+    }
+};
+
+/* //或者这样也可以
+struct Point {
+    int x,y,z;
+    constexpr Point up(int d) { return {x,y,z+d}; }
+    constexpr Point move(int dx,int dy) { // There need not 'const'
+        return {x+dx, y+dy, z};
+    }
+}; */
+
+constexpr Point origo { 0, 0 };
+constexpr int z = origo.x;
+constexpr Point constarry[] = { origo,Point{1,1},Point{2,2},origo.move(1,2) };
+
+int squareF(int x) { return x * x; }
+
+constexpr int x = constarry[1].x;
+// constexpr Point xy{1,squareF(4)}; // error: call to non-constexpr function ‘int squareF(int)’
+
+constexpr int square(int x) { return x*x; }
+constexpr int radial_distance(Point p) {
+    return isqrt(square(p.x) + square(p.y) + square(p.z));
+}
+
+constexpr Point p1 {10,20,30};
+constexpr Point p2 {p1.up(20)};
+constexpr int dist = radial_distance(p2);
+
+int main(int argc, char *argv[]) {
+    const Point testpoint { 10,20,30 };
+    testpoint.move(100,200);
 }
 
 #+END_SRC
+
+
+** 隐式转型
+   C++允许整数类型和浮点类型在表达式中混合使用，在可能的情况下值的类型会自动转化避免损失信息，但是有时候也会发生窄化类型转换
+   
+*** 整型提升转换规则
+    1. 如果一个 char,signed char, unsigned char, short int或 unsigned short int 类型的原数值可以被int类型表示,则转换成int类型，否则转换成unsigned int
+    2. char16_t,char32_t,wchar_t 或者 平凡枚举类型（enum）的值被转换成下列第一个可以表示他们潜在类型原数值的类型: int, unsigned int, long, unsigned long, unsigned long long
+    3. 位域如果可以被一个int型表示则 转换成int型，否则尝试转换成unsigned int型，如果unsigned int也无法表示该位域,则不会对它进行整型提升。
+    4. bool类型转换成int类型,false转换成0,true转换成1
+       
+*** 类型转换
+    * {}可以避免窄化类型转换
+    * 如果窄化类型转换确实无法避免，可以使用narrow_cast<>()
+    * 整数类型转换
+      * 如果被转换成无符号整型，则保留低位，高位被截断
+      * 如果被转换成有符号整型，则结果依赖于实现如 signed char sc = 1023 结果可能是127或-1 (gcc是-1)
+    * 浮点数类型转换
+      * 一个浮点值可以被转换成其他类型的浮点值，如果原值可以被完全目标类型表示,则结果和原值相同，如果原值在两个相邻的低精度目标值之间，则结果是他们之中的一个，否则结果未定义
 
 
 * 小细节
