@@ -1,0 +1,7 @@
+#+TITLE: ubuntu16.04 莫名其妙占用 cpu 的 tracker
+#+DATE: 2017-09-13
+#+LAYOUT: post
+#+TAGS: tools ubuntu linux
+#+CATEGORIES: ubuntu
+
+今天使用 ubuntu 意外发现 cpu 占用率跟心电图似的。top 一下发现一个叫 tracker-miner-f 的线程占用了很多系统资源，查了下是 Ubuntu 从 7.10 开始就增加了这个玩意，是一个类似 GoogleDesktop 的东西，直接 apt remove tracker 干掉了，心电图拉直。。
