@@ -1,5 +1,5 @@
 #+TITLE: C++11 学习笔记
-#+DATE: 2017-08-11
+#+DATE: 2017-09-27
 #+LAYOUT: post
 #+TAGS: C++ C++11 cpp
 #+CATEGORIES: C++
@@ -895,9 +895,9 @@ constexpr int xx = x;
 #+END_SRC
 
    * 使用在函数声明和定义前，制定常量表达式，在函数的所有参数均为常量表达式的时候函数返回一个常量表达式，如果参数非均为常量，则像普通函数一样工作避免了重复定义。 
-   * 含有constexpr构造函数的类称为字面值常量类型，构造函数必须足够简单才能被声明成constexpr，简单意味着，构造函数的函数体为空，且所有的成员都是用潜在的常量表达式初始化的。（或者干脆不提供构造函数，完全使用列表初始化）
-   * 注意 constexpr的成员函数同时是const的
-   * 在使用constexpr的时候任何对象都无法改变值或者造成什么其他影响(编译时使用微型函数式语言)
+   * 含有 constexpr 构造函数的类称为字面值常量类型，构造函数必须足够简单才能被声明成 constexpr，简单意味着，构造函数的函数体为空，且所有的成员都是用潜在的常量表达式初始化的。（或者干脆不提供构造函数，完全使用列表初始化）
+   * 注意 constexpr 的成员函数同时是 const 的
+   * 在使用 constexpr 的时候任何对象都无法改变值或者造成什么其他影响(编译时使用微型函数式语言)
       
 #+BEGIN_SRC cpp
 constexpr int isqrt_helper(int sq, int d, int a) { return sq <= a ? isqrt_helper(sq+d,d+2,a):d; }
@@ -954,25 +954,26 @@ int main(int argc, char *argv[]) {
    C++允许整数类型和浮点类型在表达式中混合使用，在可能的情况下值的类型会自动转化避免损失信息，但是有时候也会发生窄化类型转换
    
 *** 整型提升转换规则
-    1. 如果一个 char,signed char, unsigned char, short int或 unsigned short int 类型的原数值可以被int类型表示,则转换成int类型，否则转换成unsigned int
+    1. 如果一个 char,signed char, unsigned char, short int 或 unsigned short int 类型的原数值可以被 int 类型表示,则转换成 int 类型，否则转换成 unsigned int
     2. char16_t,char32_t,wchar_t 或者 平凡枚举类型（enum）的值被转换成下列第一个可以表示他们潜在类型原数值的类型: int, unsigned int, long, unsigned long, unsigned long long
-    3. 位域如果可以被一个int型表示则 转换成int型，否则尝试转换成unsigned int型，如果unsigned int也无法表示该位域,则不会对它进行整型提升。
-    4. bool类型转换成int类型,false转换成0,true转换成1
+    3. 位域如果可以被一个 int 型表示则 转换成 int 型，否则尝试转换成 unsigned int 型，如果 unsigned int 也无法表示该位域,则不会对它进行整型提升。
+    4. bool 类型转换成 int 类型,false 转换成 0,true 转换成 1
        
 *** 类型转换
     * {}可以避免窄化类型转换
-    * 如果窄化类型转换确实无法避免，可以使用narrow_cast<>()
+    * numeric_limits 可以确保截断以一种可以移植的方式进行
+    * 如果窄化类型转换确实无法避免，可以使用 narrow_cast<>()
 **** 整数类型转换
       * 如果被转换成无符号整型，则保留低位，高位被截断
-      * 如果被转换成有符号整型，则结果依赖于实现如 signed char sc = 1023 结果可能是127或-1 (gcc是-1)
+      * 如果被转换成有符号整型，则结果依赖于实现如 signed char sc = 1023 结果可能是 127 或-1 (gcc 是-1)
 **** 浮点数类型转换
-      * 一个浮点值可以被转换成其他类型的浮点值，如果原值可以被完全目标类型表示,则结果和原值相同，如果原值在两个相邻的低精度目标值之间，则结果是他们之中的一个(gcc是四舍五入)，否则结果未定义。
+      * 一个浮点值可以被转换成其他类型的浮点值，如果原值可以被完全目标类型表示,则结果和原值相同，如果原值在两个相邻的低精度目标值之间，则结果是他们之中的一个(gcc 是四舍五入)，否则结果未定义。
         
 #+BEGIN_SRC cpp
     double testd = 0.1234567890123456;
     float testf = testd;
     cout<<setprecision(16)<<testd<<endl; // 0.1234567890123456
-    cout<<setprecision(16)<<testf<<endl; // 0.1234567910432816 //这里从第8个有效数字开始被截断，四舍五入进了一位
+    cout<<setprecision(16)<<testf<<endl; // 0.1234567910432816 //这里从第 8 个有效数字开始被截断，四舍五入进了一位
     
     testd = 0.1234567810123456;
     testf = testd;
@@ -986,16 +987,58 @@ int main(int argc, char *argv[]) {
 #+END_SRC
 
 **** 指针和引用类型转换
-    * 任何指向对象的指针都能隐式地转换成void *
+    * 任何指向对象的指针都能隐式地转换成 void *
     * 指向派生类的指针/引用都能隐式的转换成指向其可访问的且明确无二意的基类
-    * 指向函数的指针和指向成员的指针不能隐式的转换成void *
-    * 求值结果为0的常量表达式可以转换成任何类型的或指向成员的空指针
-    * 最好直接使用nullptr
-    * T*可以隐式的转换成const T*, T& 可以隐式的转换成const T&
+    * 指向函数的指针和指向成员的指针不能隐式的转换成 void *
+    * 求值结果为 0 的常量表达式可以转换成任何类型的或指向成员的空指针
+    * 最好直接使用 nullptr
+    * T*可以隐式的转换成 const T*, T& 可以隐式的转换成 const T&
     * TODO 补充指向成员的指针转换规则
 
 **** 布尔类型转换                    
-     bool
+     * bool 类型转换成 int 类型,false 转换成 0,true 转换成 1
+     * 指针、整数、浮点数都能隐式的转换成 bool 类型。非 0 的值对应 true，0 值对应 false
+     
+**** 浮点数和整数相互转换
+     * 浮点数向整数转换则丢弃小数部分，如果源值无法被目标类型表示，则行为未定义
+     * 整数向浮点数转换都是合法的但是如果目标浮点数的精度无法表示源整数，则会丢失精度
+
+#+BEGIN_SRC cpp
+
+int main(int argc, char *argv[]) {                                                          
+    int i = 1234567890;                                                                     
+    float f = i;                                                                            
+    cout<<"int "<<i<<" to float "<<f<<endl;                                                 
+                                                                                            
+    double d = 123456789012345;                                                             
+    i = d;                                                                                  
+    cout<<"double "<<d<<" to int "<<i<<endl;                                                
+                                                                                            
+    d = 0.123456789012345;                                                                  
+    i = d;                                                                                  
+    cout<<"double "<<d<<" to int "<<i<<endl;                                                
+}                                                                                           
+
+/*
+test init
+int 1234567890 to float 1234567936
+double 123456789012345 to int -2147483648
+double 0.123456789012345 to int 0
+*/
+
+#+END_SRC
+
+**** 二元运算符的转化规则
+     * 按照下面的顺序当出现两个对象其中一个是这个类型的时候另一个也转换成这个类型
+     * long double > double > float 
+     * 如果到 float 都没有则先对两个操作数进行整形提升去除掉 char short 枚举 位域 和 bool 类型, 然后按下面的规则统一类型
+     * unsigned long int 和 long long int, 如果 long long int 能够表示所有 unsigned long int 的值的时候 转换成 long long int 否则转换成 unsigned long long int , 这个规则中所有的类型去掉一个 long 的时候同样适用
+     * 之后按照下面的顺序
+     * long > unsigned > int
+     * 有符号的和无符号的就尽量别混着用
+
+
+
 
 
 
