@@ -31,7 +31,7 @@
 #+END_SRC
 
 * Using　声明别名
-   using 和 typedef 的使用在类型声明上基本一致，但是ｔｙｐｅｄｅｆ无法使用在模板定义中
+   using 和 typedef 的使用在类型声明上基本一致，但是 typedef 无法使用在模板定义中
    一般_t 后缀表示该类型是另一个类型的别名
 
 #+BEGIN_SRC cpp
@@ -50,7 +50,7 @@ typedef TestUsing<int> NewName2;
 // typedef TestUsing<T> NewName2;  //编译错误　ｔｙｐｅｄｅｆ不可用于模板, 即定义出的新类型不能使模板。 
 #+END_SRC
 
-   *注意:不允许在类型别名前加修饰符（如ｕｎｓｉｇｎｅｄ）*
+   *注意:不允许在类型别名前加修饰符（如 unsigned）*
    
 #+BEGIN_SRC cpp
 using Char2 = char;
@@ -560,9 +560,9 @@ End of assembler dump.
 #+END_SRC
 
 ** 联合体
-   union 是一种特殊的结构体，所有的成员都分配在同一个地址上，一个ｕｎｉｏｎ实际占用的大小和它的最大成员相同，自然同一时刻只能保存一个成员的值。
+   union 是一种特殊的结构体，所有的成员都分配在同一个地址上，一个 union 实际占用的大小和它的最大成员相同，自然同一时刻只能保存一个成员的值。
    union 有很多限制，因为比如复制的时候根本不知道该使用那个复制构造函数云云
-   * *注意* 如果联合中包含了具有用户自定义析构函数等被ｄｅｌｅｔｅ掉的函数，需要在适当的时候显示调用
+   * *注意* 如果联合中包含了具有用户自定义析构函数等被 delete 掉的函数，需要在适当的时候显示调用
      例如
      1. 类内包含匿名联合其中包含 string s 对象，则在析构此类对象的时候考虑是否需要 s.~string();
      2. 上例类构造\设置对象的时候是否需要　ｎｅｗ(&s) string(); 显式执行 string 构造函数
@@ -592,7 +592,8 @@ int main(int argc, char *argv[]) {
 
 ** 枚举
    有两种类型的枚举
-*** enum class 它的枚举值名字位于ｅｎｕｍ的作用域内(枚举名字可以通过枚举名：：来明确限定不会和其他枚举内的枚举名重复)，枚举值不会隐式的转换成其他类型。
+*** enum class 它的枚举值名字位于 enum 的作用域内(枚举名字可以通过枚举名::来明确限定不会和其他枚举内的枚举名重复)，枚举值不会隐式的转换成其他类型。
+    * 使用 static_cast<underlying_type<EnumType>::type>(type) 把枚举转化成整型操作更靠谱
 
  #+BEGIN_SRC cpp
  enum class Light: uint8_t;
@@ -642,6 +643,11 @@ int main(int argc, char *argv[]) {
  f2: 0
  f2: 210
  */
+
+enum class AllocatorType { AllocatorX,AllocatorY };
+void *operator new(size_t size, AllocatorType type) {
+    cout<<"new allocator type : "<<static_cast<underlying_type<AllocatorType>::type>(type)<<endl; //underlying_type 这种方式更优雅
+}
  #+END_SRC
 *** plain enum 它的枚举值名字和枚举类型本身位于同一作用域，枚举值可以隐式的被转化成整数。
     *对于普通枚举类型，如果没有指定潜在类型，则无法先声明后定义*
@@ -1039,7 +1045,7 @@ double 0.123456789012345 to int 0
 
 
 ** new 和 delete 
-   * new和ｄｅｌｅｔｅ分配和释放对象,　new[]和delete[]用于分配和释放数组
+   * new 和ｄｅｌｅｔｅ分配和释放对象,　new[]和 delete[]用于分配和释放数组
    * T *o = new T 和　T *o = new T()的区别，对于用户自定义类型，两者一样，对于内置类型，后者会把它初始成默认值(0)
 #+BEGIN_SRC cpp
 
@@ -1093,9 +1099,33 @@ End of assembler dump.
 
 #+END_SRC
 
-** 重载new(放置语法)
-   * new运算符可以通过 void* operator new(size_t s, T *p);的方式进行重载，对象的大小的new运算符隐式计算的，所以返回的是void类型指针。该重载为new运算符提供了额外的参数void*p,调用的方式为new（m) X;对象m将会作为p的实参传入到new的重载函数中，m可以是具体的地址或者内存分配器,编译器根据常规的实参匹配规则确定哪个版本的new运算符函数将会被执行，但是每一个operator new函数都以size_t作为第一个实参, 头文件<new>中实现了void*的重载版本，使用void*指针指向的地址存储对象
- //  * 放置式delete 如 void operator delete(void *p, T *allocor) 可能会告知垃圾回收器当前删掉的指针不安全 // shiyan
+** 重载 new(放置语法)
+   * new 运算符可以通过 void* operator new(size_t s, ...);的方式进行重载，对象的大小的 new 运算符隐式计算的，所以返回的是 void 类型指针。调用的方式为 new（这里的内容被传到 size_t 后面当做形参),编译器根据常规的实参匹配规则确定哪个版本的 new 运算符函数将会被执行，但是每一个 operator new 函数都以 size_t 作为第一个实参, 头文件<new>中实现了 void*的重载版本，使用 void*指针指向的地址存储对象
+   * 放置式 delete 即 void operator delete(void *p, ...) 在对象构建失败的时候被调用,调用的重载版本根据对象 new 的时候使用的版本进行匹配
+
+#+BEGIN_SRC cpp
+
+struct BadClass {
+    BadClass() { throw std::runtime_error(""); }
+};
+enum class AllocatorType { AllocatorX,AllocatorY };
+void *operator new(size_t size, AllocatorType type) {
+    cout<<"new allocator type : "<<static_cast<underlying_type<AllocatorType>::type>(type)<<endl;
+    return malloc(size);
+}
+void operator delete(void *p, AllocatorType type) {
+    free(p);
+}
+int main(int argc, char *argv[]) {
+    try {
+        BadClass *a = new(AllocatorType::AllocatorY) BadClass; // 在对象 *构建失败* 的时候会根据 new 的重载类型匹配相应的 delete 重载版本
+        // 这里因为构建失败(抛出了异常)所以调用了重载版本的 delete 具体见 http://en.cppreference.com/w/cpp/memory/new/operator_delete
+    } catch (const std::exception &) { }
+    int *i = new(AllocatorType::AllocatorY) int;
+    delete i; //这里没有构建失败，所以不会调用 delete 的重载版本,这个时候使用 C++的默认 delete 函数中的分配器释放了 malloc 分配的指针，程序崩溃
+}
+
+#+END_SRC
 
 * 小细节
   * 抽象函数的调用需要使用指针或引用操作对象的主要原因是执行抽象任务的代码无法判断对象属于那个具体的实现，所以编译器对操作对象需要的空间大小一无所知，无法从栈上分配合理的空间。
