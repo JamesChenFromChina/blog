@@ -1038,9 +1038,64 @@ double 0.123456789012345 to int 0
      * 有符号的和无符号的就尽量别混着用
 
 
+** new 和 delete 
+   * new和ｄｅｌｅｔｅ分配和释放对象,　new[]和delete[]用于分配和释放数组
+   * T *o = new T 和　T *o = new T()的区别，对于用户自定义类型，两者一样，对于内置类型，后者会把它初始成默认值(0)
+#+BEGIN_SRC cpp
 
+class TestA {                                                                                                                 
+public:                                                                                                                       
+    int a;                                                                                                                    
+    TestA() : a{ }                                                                                                                         
+};                                                                                                                            
+int main(int argc, char *argv[]) {                                                                                            
+    TestA *a = new TestA();                                                                                                   
+    TestA *b = new TestA;                                                                                                     
+                                                                                                                              
+    int *d = new int();                                                                                                       
+    int *c = new int;                                                                                                         
+}                     
 
+/*
+Dump of assembler code for function main(int, char**):                                                                        
+   0x0000000000405c3d <+0>: push   %rbp                                                                                       
+   0x0000000000405c3e <+1>: mov    %rsp,%rbp                                                                                  
+   0x0000000000405c41 <+4>: push   %rbx                                                                                       
+   0x0000000000405c42 <+5>: sub    $0x38,%rsp                                                                                 
+   0x0000000000405c46 <+9>: mov    %edi,-0x34(%rbp)                                                                           
+   0x0000000000405c49 <+12>:  mov    %rsi,-0x40(%rbp)                                                                         
+=> 0x0000000000405c4d <+16>:  mov    $0x4,%edi                                                                                
+   0x0000000000405c52 <+21>:  callq  0x4042c0 <_Znwm@plt>                                                                     
+   0x0000000000405c57 <+26>:  mov    %rax,%rbx                                                                                
+   0x0000000000405c5a <+29>:  mov    %rbx,%rdi                                                                                
+   0x0000000000405c5d <+32>:  callq  0x405efe <TestA::TestA()>                                                                
+   0x0000000000405c62 <+37>:  mov    %rbx,-0x30(%rbp)                                                                         
+   0x0000000000405c66 <+41>:  mov    $0x4,%edi                                                                                
+   0x0000000000405c6b <+46>:  callq  0x4042c0 <_Znwm@plt>                                                                     
+   0x0000000000405c70 <+51>:  mov    %rax,%rbx                                                                                
+   0x0000000000405c73 <+54>:  mov    %rbx,%rdi                                                                                
+   0x0000000000405c76 <+57>:  callq  0x405efe <TestA::TestA()>                                                                
+   0x0000000000405c7b <+62>:  mov    %rbx,-0x28(%rbp)                                                                         
+   0x0000000000405c7f <+66>:  mov    $0x4,%edi                                                                                
+   0x0000000000405c84 <+71>:  callq  0x4042c0 <_Znwm@plt>                                                                     
+   0x0000000000405c89 <+76>:  movl   $0x0,(%rax)   //=======> 注意这里                                                                           
+   0x0000000000405c8f <+82>:  mov    %rax,-0x20(%rbp)                                                                         
+   0x0000000000405c93 <+86>:  mov    $0x4,%edi                                                                                
+   0x0000000000405c98 <+91>:  callq  0x4042c0 <_Znwm@plt>                                                                     
+   0x0000000000405c9d <+96>:  mov    %rax,-0x18(%rbp)                                                                         
+   0x0000000000405ca1 <+100>: mov    $0x0,%eax                                                                                
+   0x0000000000405ca6 <+105>: add    $0x38,%rsp                                                                               
+   0x0000000000405caa <+109>: pop    %rbx                                                                                     
+   0x0000000000405cab <+110>: pop    %rbp                                                                                     
+   0x0000000000405cac <+111>: retq                                                                                            
+End of assembler dump.      
+*/
 
+#+END_SRC
+
+** 重载new(放置语法)
+   * new运算符可以通过 void* operator new(size_t s, T *p);的方式进行重载，对象的大小的new运算符隐式计算的，所以返回的是void类型指针。该重载为new运算符提供了额外的参数void*p,调用的方式为new（m) X;对象m将会作为p的实参传入到new的重载函数中，m可以是具体的地址或者内存分配器,编译器根据常规的实参匹配规则确定哪个版本的new运算符函数将会被执行，但是每一个operator new函数都以size_t作为第一个实参, 头文件<new>中实现了void*的重载版本，使用void*指针指向的地址存储对象
+ //  * 放置式delete 如 void operator delete(void *p, T *allocor) 可能会告知垃圾回收器当前删掉的指针不安全 // shiyan
 
 * 小细节
   * 抽象函数的调用需要使用指针或引用操作对象的主要原因是执行抽象任务的代码无法判断对象属于那个具体的实现，所以编译器对操作对象需要的空间大小一无所知，无法从栈上分配合理的空间。
@@ -1049,3 +1104,4 @@ double 0.123456789012345 to int 0
 #+BEGIN_SRC cpp
     // const int a; // error: uninitialized const ‘a’ [-fpermissive]
 #+END_SRC
+
