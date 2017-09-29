@@ -1128,7 +1128,40 @@ int main(int argc, char *argv[]) {
 #+END_SRC
 
    * nothrow(nothrow_t 的一个对象用于触发重载版本)的new和delete重载版本不会抛出异常
-   * nothrow 只确保不抛出
+   * nothrow 只确保不抛出bad_alloc, 但是有可能抛出其他异常，比如在构造函数中出现的异常。
+
+** 列表
+
+   * 实现模型
+     1. 如果{}列表被用作构造函数的实参，则其实现过程与使用（）列表相似，除非列表的元素以值传递的方式传递给构造函数，否则不会拷贝列表的元素
+     2. 如果{}列表被用于初始化一个聚合体(数组或没有提供构造函数的类)的元素，则列表的每个元素分别初始化聚合体中的一个元素，除非列表的元素以值传递的方式传递给构造函数，否则不会拷贝列表的元素
+     3. 如果{}列表被用于构建一个intializer_list对象，则列表的每个元素分别初始化initializer_list的底层数组的一个元素，通常情况下我们把元素从initializer_list拷贝到实际使用它们的地方
+
+   * 列表初始化命名变量的两种表现形式
+     1. 限定列表,部分情况可以作为表达式，限定为某种类型，如T{...}意思是创建一个T类型的对象，并用{...}初始化它
+     2. 未限定的列表{...}，根据上下文确定, 注意 这里没有表明要创建的对象的类型, 所以他需要能够明确知道所用类型。使用上限于一下场景
+        * 函数实参
+        * 返回值
+        * 赋值运算符 = += *=等
+        * 下标 这个在 GCC里面不好使 规范里面 [[http://en.cppreference.com/w/cpp/language/list_initialization][这里提到了]] (9)这项
+
+#+BEGIN_SRC cpp
+int test_f(int a) { return a; }
+
+int test_initializer() {
+    int v {7};
+    int v2 = {7};
+    int testarray[5];
+    // testarray[{1}]; // error: array subscript is not an integer
+    v = {8};
+    v += {99};
+    // v = 7 + {10}; error: initializer list cannot be used on the right hand side of operator '+'
+    test_f({100});
+    return {11};
+}
+#+END_SRC
+
+** lambda表达式
 
 
 * 小细节
