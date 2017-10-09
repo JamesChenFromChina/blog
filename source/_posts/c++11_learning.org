@@ -1162,7 +1162,64 @@ int test_initializer() {
 #+END_SRC
 
 ** lambda表达式
+*** lambda表达式的构成
+    1. 一个可能为空的捕获列表指明定义环境中的哪些名字能被用在lambda表达式内,以及这些名字的访问方式是拷贝还是引用,捕获列表位于[]内
+    2. 一个可选的参数列表,指明lambda表达式所需的参数。参数列表位于()内
+    3. 一个可选的mutable修饰符，指明该lambda表达式可能会修改它自身的状态，即改变通过值捕获的变量的副本
+    4. 一个可选的noexcept修饰符
+    5. 一个可选的->形式的返回类型声明
+    6. 一个表达式体，指明需要执行的代码，表达式体位于{}内
 
+#+BEGIN_SRC cpp
+template<typename C>
+class modulc_printer {
+private:
+    using elementType=typename C::value_type;
+    ostream &os;
+    int m;
+public:
+    modulc_printer(ostream&s,int mm) : os(s), m(mm) {}
+    void operator()(elementType x) const {
+        if (x%m==0) os<<x<<'\n';
+    }
+};
+
+template<typename C>
+void print_modulc(const C& v, ostream &os, int m) {
+    for_each(begin(v), end(v),modulc_printer<typename remove_reference<decltype(v)>::type>(os,m));
+}
+
+template<typename C>
+void print_modulf(const C& v, ostream &os, int m) {
+    for(auto x : v)
+        if (x%m==0) os<<x<<'\n';
+}
+
+template<typename C>
+void print_modull(const C& v, ostream &os, int m) {
+    // error: no viable conversion from '(lambda at /home/chenpeng/Documents/TestCpp/src/Test.cpp:104:29)' to 'int (*)(int)'
+    // 这里编译器会在线生成一个闭包对象类型，因为函数指针无法携带捕获的函数变量等信息，所以lambda不是一个单纯的函数对象
+    // int (*lambdaobj)(int) = [&os,m](int x){ if (x%m==0) os<<x<<'\n'; };
+
+    // error: variable 'lambdaobj' declared with 'auto' type cannot appear in its own initializer
+    // auto lambdaobj = [&os,m,&lambdaobj](int x){ if (x%m==0) os<<x<<'\n'; if(x != 100) lambdaobj(100); };
+
+    // std::function<int(int)> lambdaobj = [&os,m,&lambdaobj](int x)->int { if (x%m==0) os<<x<<'\n'; if(x != 100) lambdaobj(100); return 0; };
+
+    std::function<void(int)> lambdaobj = [&os,m,&lambdaobj](int x) { if (x%m==0) os<<x<<'\n'; if(x != 100) lambdaobj(100); };
+    for_each(begin(v), end(v), lambdaobj);
+}
+
+int main(int argc, char *argv[]) {
+    vector<int> testvec{1,2,3,4,5,6,7,8,9};
+    print_modull(testvec,cout,2);
+    print_modulf(testvec,cout,2);
+    print_modulc(testvec,cout,2);
+}
+
+#+END_SRC
+
+   
 
 * 小细节
   * 抽象函数的调用需要使用指针或引用操作对象的主要原因是执行抽象任务的代码无法判断对象属于那个具体的实现，所以编译器对操作对象需要的空间大小一无所知，无法从栈上分配合理的空间。

@@ -1,0 +1,58 @@
+#+TITLE: C++11 lambda细节
+#+DATE: 2017-10-10
+#+LAYOUT: post
+#+TAGS:
+#+CATEGORIES:
+
+
+#+BEGIN_SRC cpp
+
+//一种类形式的替代方式
+template<typename C>
+class modulc_printer {
+private:
+    using elementType=typename C::value_type;
+    ostream &os;
+    int m;
+public:
+    modulc_printer(ostream&s,int mm) : os(s), m(mm) {}
+    void operator()(elementType x) const {
+        if (x%m==0) os<<x<<'\n';
+    }
+};
+
+template<typename C>
+void print_modulc(const C& v, ostream &os, int m) {
+    for_each(begin(v), end(v),modulc_printer<typename remove_reference<decltype(v)>::type>(os,m));
+}
+
+template<typename C>
+void print_modulf(const C& v, ostream &os, int m) {
+    for(auto x : v)
+        if (x%m==0) os<<x<<'\n';
+}
+
+template<typename C>
+void print_modull(const C& v, ostream &os, int m) {
+    // error: no viable conversion from '(lambda at /home/chenpeng/Documents/TestCpp/src/Test.cpp:104:29)' to 'int (*)(int)'
+    // 这里编译器会在线生成一个闭包对象类型，因为函数指针无法携带捕获的函数变量等信息，所以lambda不是一个单纯的函数对象
+    // int (*lambdaobj)(int) = [&os,m](int x){ if (x%m==0) os<<x<<'\n'; };
+
+    // error: variable 'lambdaobj' declared with 'auto' type cannot appear in its own initializer
+    // auto lambdaobj = [&os,m,&lambdaobj](int x){ if (x%m==0) os<<x<<'\n'; if(x != 100) lambdaobj(100); };
+
+    // std::function<int(int)> lambdaobj = [&os,m,&lambdaobj](int x)->int { if (x%m==0) os<<x<<'\n'; if(x != 100) lambdaobj(100); return 0; };
+
+    // 这里获取到lambda对象用于尝试递归调用
+    std::function<void(int)> lambdaobj = [&os,m,&lambdaobj](int x) { if (x%m==0) os<<x<<'\n'; if(x != 100) lambdaobj(100); };
+    for_each(begin(v), end(v), lambdaobj);
+}
+
+int main(int argc, char *argv[]) {
+    vector<int> testvec{1,2,3,4,5,6,7,8,9};
+    print_modull(testvec,cout,2);
+    print_modulf(testvec,cout,2);
+    print_modulc(testvec,cout,2);
+}
+
+#+END_SRC
