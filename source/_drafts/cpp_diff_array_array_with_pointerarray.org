@@ -1,0 +1,17 @@
+#+TITLE: C++中二维数组和指针数组的区别和寻址方式
+#+DATE: 2017-10-10
+#+LAYOUT: post
+#+TAGS: cpp C++ C++11
+#+CATEGORIES: C++
+
+#+BEGIN_SRC cpp
+int main(int argc, char *argv[]) {
+    int testPA1[] = {1, 2, 3};
+    int testPA2[] = {4, 5, 6};
+    int testPA3[] = {7, 8, 9};
+    int *testPA[] = { testPA1, testPA2, testPA3 };
+
+    testAA[1][2] = 100;
+    testPA[1][2] = 200;
+}
+#+END_SRC

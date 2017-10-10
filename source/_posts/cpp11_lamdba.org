@@ -1,8 +1,8 @@
 #+TITLE: C++11 lambda细节
 #+DATE: 2017-10-10
 #+LAYOUT: post
-#+TAGS:
-#+CATEGORIES:
+#+TAGS: cpp C++ C++11
+#+CATEGORIES: C++
 
 
 #+BEGIN_SRC cpp
