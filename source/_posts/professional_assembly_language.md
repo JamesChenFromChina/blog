@@ -11,8 +11,63 @@ categories: Assembly
 ## 官方参考手册
 [官方手册](https://software.intel.com/sites/default/files/managed/39/c5/325462-sdm-vol-1-2abcd-3abcd.pdf)
 
+## intel 寄存器列表
 
+### 通用寄存器
+这些寄存器通常用于存储指令的操作数，但是有些指令会指定特有的寄存器来承担特定的功能。
+
+| 寄存器名称 | 功能描述                                                                                                                |
+| :--------- | :----------                                                                                                             |
+| EAX        | Accumulator for operands and results data                                                                               |
+| EBX        | Pointer to data in the DS segment                                                                                       |
+| ECX        | Counter for string and loop operations                                                                                  |
+| EDX        | I/O pointer                                                                                                             |
+| ESI        | Pointer to data in the segment pointed to by the DS register; source pointer for the string operations                  |
+| EDI        | Pointer to data(or destination) in the segment pointed to by the ES register; destination pointer for string operations |
+| ESP        | Stack pointer(in the SS segment)                                                                                        |
+| EBP        | Pointer to data on the stack (in the SS segment)                                                                             |
   
+* 以上为32位寄存器 去掉E为16位寄存器
+* 在64位模式下除了提供了R前缀的64位通用寄存器(如 RAX)，还提供了R8-R15 8个64位通用寄存器
+
+### 段寄存器
+16位时代，为了扩展地址总线到20位，会将段寄存器的16位左移4位加上一个16位的地址作为最终的寻址地址，32位时代，段寄存器承担起了映射表择子(selector)的作用,用于指明特定的内存段条目。64位模式下由于地址空间巨大，一般不在使用了
+
+主要包括
+| 名称 | 作用         |
+|------|--------------|
+| CS   | 代码段寄存器 |
+| DS   | 数据段寄存器 |
+| ES   | 扩展段寄存器 |
+| SS   | 堆栈段寄存器 |
+| FS   |              |
+| GS   |              |
+
+### 标志寄存器
+有 FLAG(16bit) EFLAG(32bit) RFLAG(64bit)三个版本对应不同的模式
+这是一个32位长度的寄存器，包括的标志如下
+
+| 名称 |  位置 | 作用                                                |
+|------|-------|-----------------------------------------------------|
+| CF   |     0 | 带位表示                                            |
+| PF   |     2 |                                                     |
+| AF   |     4 |                                                     |
+| ZF   |     6 |                                                     |
+| SF   |     7 |                                                     |
+| TF   |     8 |                                                     |
+| IF   |     9 |                                                     |
+| DF   |    10 | 方向标识，控制流语句的执行方向，(MOVS CMPS SCAS 等) |
+| OF   |    11 |                                                     |
+| IOPL | 12 13 |                                                     |
+| NT   |    14 |                                                     |
+| RF   |    16 |                                                     |
+| VM   |    17 |                                                     |
+| AC   |    18 |                                                     |
+| VIF  |    19 |                                                     |
+| VIP  |    20 |                                                     |
+| ID   |    21 |                                                     |
+
+
 ## intel 指令格式
 在intel手册的第二卷第二章给出了intel处理器指令的格式，包括现有的intel64和IA-32处理器都是使用的这种指令格式，了解指令的格式有助于我们理解汇编语言中的指令规律
 
@@ -50,3 +105,27 @@ Intel指令主要由四个部分组成
     * 寻址方式说明符(ModR/M)字节
     * 比例-索引-基址(SIB)字节
     * 1\2\4个地址移位字节
+    
+    1. ModR/M字节包含三个字段
+    * Mod专用于定义指令中使用的寄存器或寻址方式(寄存器或内存)
+    * reg/opcode 用于两个功能 1， 指定寄存器 2. 扩展操作码的宽度
+    * r/m 用于两个功能 1. 指定另一个寄存器 2. 和Mod组合定义寻址方式
+| Mod | reg/opcode | r/m |
+|:----|:-----------|:----|
+| 2位 | 3位        | 3位 |
+
+    2. SIB字节也由3个部分组成
+| 比例 | 索引 | 基址 |
+|------|------|------|
+| 2位  | 3位  | 3位   |
+比例字段指定操作的比例因子
+索引字段指定内存访问中所用的索引寄存器
+基址字段指定内存访问中所用的基址寄存器
+    
+    3. 地址移位字节
+    用于指定对于ModR/M和SIB字节中定义的内存位置的偏移
+
+4. 数据元素
+    指令使用的数据，一般是立即数或内存位置
+
+    
