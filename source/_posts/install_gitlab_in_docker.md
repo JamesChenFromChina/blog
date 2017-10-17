@@ -49,4 +49,4 @@ sudo docker run --detach \
 
 ```
 
-构建新容器。 docker restart gitlab重启， 然后发现2222端口没有动静,最后发现这个镜像的sshd服务配置文件在 `/assets/sshd_config` 这个位置，修改了sshd的监听端口后搞定
+构建新容器。 docker restart gitlab重启， 然后发现2222端口没有动静,ps发现这个镜像的sshd服务配置文件在 `/assets/sshd_config` 这个位置，修改了sshd的监听端口后搞定
