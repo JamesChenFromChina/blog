@@ -1,7 +1,7 @@
 title: 一个Ｃ语言的泛型哈希表实现
 date: 2017-10-30
-tags:
-categories:
+tags: C hashtable
+categories: C
 ---
 
 # 一个Ｃ语言的泛型哈希表实现
