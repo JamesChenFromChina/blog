@@ -19,13 +19,13 @@ $5 = (void *) 0x7fffffffdc24
 (gdb) disassemble
 Dump of assembler code for function main(int, char**):
    0x000000000040a2a0 <+0>:	push   %rbp
-   0x000000000040a2a1 <+1>:	mov    %rsp,%rbp  <== 保存栈帧位置
-   0x000000000040a2a4 <+4>:	push   %rbx       <== 局部要使用的寄存器
-   0x000000000040a2a5 <+5>:	sub    $0x98,%rsp <== 为局部变量压栈
-   0x000000000040a2ac <+12>:	xor    %eax,%eax <== eax 置零
-   0x000000000040a2ae <+14>:	lea    -0x64(%rbp),%rcx
-   0x000000000040a2b2 <+18>:	lea    -0x58(%rbp),%rdx
-   0x000000000040a2b6 <+22>:	lea    -0x4c(%rbp),%r8
+   0x000000000040a2a1 <+1>:	mov    %rsp,%rbp             ;; 保存栈帧位置
+   0x000000000040a2a4 <+4>:	push   %rbx                  ;; 局部要使用的寄存器
+   0x000000000040a2a5 <+5>:	sub    $0x98,%rsp            ;; 为局部变量压栈 压了152字节
+   0x000000000040a2ac <+12>:	xor    %eax,%eax           ;; eax 置零
+   0x000000000040a2ae <+14>:	lea    -0x64(%rbp),%rcx    ;; rcx = rbp - 100 \
+   0x000000000040a2b2 <+18>:	lea    -0x58(%rbp),%rdx    ;; rdx = rbp - 88  |>　栈上三个变量的地址　相隔12个字节就是三个int
+   0x000000000040a2b6 <+22>:	lea    -0x4c(%rbp),%r8     ;; r8 = rbp - 76   /
    0x000000000040a2ba <+26>:	movabs $0x40bb00,%r9
    0x000000000040a2c4 <+36>:	mov    $0x24,%r10d
    0x000000000040a2ca <+42>:	mov    %r10d,%r11d
@@ -62,7 +62,8 @@ Dump of assembler code for function main(int, char**):
    0x000000000040a36b <+203>:	mov    -0x78(%rbp),%rdi
    0x000000000040a36f <+207>:	movl   $0xc8,0x8(%rdi)
    0x000000000040a376 <+214>:	mov    -0x9c(%rbp),%eax
-   0x000000000040a37c <+220>:	add    $0x98,%rsp
+   
+   0x000000000040a37c <+220>:	add    $0x98,%rsp ;;调用结束弹栈
    0x000000000040a383 <+227>:	pop    %rbx
    0x000000000040a384 <+228>:	pop    %rbp
    0x000000000040a385 <+229>:	retq   
