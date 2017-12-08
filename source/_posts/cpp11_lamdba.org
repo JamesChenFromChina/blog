@@ -48,7 +48,11 @@ void print_modull(const C& v, ostream &os, int m) {
     // 这里编译器会在线生成一个闭包对象类型，因为函数指针无法携带捕获的函数变量等信息，所以lambda不是一个单纯的函数对象
     // int (*lambdaobj)(int) = [&os,m](int x){ if (x%m==0) os<<x<<'\n'; };
 
+    // 如果lambda没有捕获任何外层变量，则可以使用一个单纯的函数指针保存它
+    int (*testFunPtr)(int) = [](int a) -> int { return a; };
+
     // error: variable 'lambdaobj' declared with 'auto' type cannot appear in its own initializer
+    // lambda的实现是自身类型的一部分，所以类型推断无法推断一个包含自身类型的类型，这种情况必须使用下面的function对象保存lambda再进行递归调用
     // auto lambdaobj = [&os,m,&lambdaobj](int x){ if (x%m==0) os<<x<<'\n'; if(x != 100) lambdaobj(100); };
 
     // std::function<int(int)> lambdaobj = [&os,m,&lambdaobj](int x)->int { if (x%m==0) os<<x<<'\n'; if(x != 100) lambdaobj(100); return 0; };
@@ -72,5 +76,50 @@ int main(int argc, char *argv[]) {
    在 lambda表达式需要访问定义它的函数的局部名字时，lambda使用了引入符([]方括号)来解决这样的问题,lambda正是从引入符开始的。引入符有以下几种
    1. [] : 空捕获列表,表示在lambda中无法使用外层上下文中的任何局部名字。这种情况数据只能从参数和非局部变量获得
    2. [&] : 通过引用隐式捕获,所有外层局部变量都可以通过引用方式访问
-   3. 
+   3. [=] : 通过值隐式捕获,所有名字都指向外层局部变量的副本
+   4. [捕获列表] : 显示捕获，捕获列表是通过值或者引用的方式捕获外层局部变量的名字列表，以&为前缀的变量名字通过引用捕获，其他变量通过值捕获，捕获列表中可以出现this,或者紧跟...的名字表示元素
+   5. [&,捕获列表] : 对于名字没有出现在捕获列表中的外层局部变量，通过引用方式捕获。列表的名字不能以&为前缀，捕获列表中的变量全部通过值的方式捕获
+   6. [=,捕获列表] : 对于名字没有出现在捕获列表中的外层局部变量，通过值隐式捕获。捕获列表中不允许包含this，列出的名字必须以&为前缀。捕获列表中的变量名通过引用方式捕获。
+
+   *注意 lambda的声明周期可能超过它的调用者,这个时候引用捕获可能造成垂悬指针。*
+
+*** lambda捕获引用对象垂悬示例
+
+#+BEGIN_SRC cpp
+
+int TestLambdaCapture(std::function<int(void)> &lambdaObj)
+{
+    int testval = 100;
+    std::function<void(void)> lambdaObj2 = [testval]() {
+        // error: cannot assign to a variable captured by copy in a non-mutable lambda
+        // testval = 200;
+    };
+    std::function<void(void)> lambdaObj1 = [testval]() mutable {
+        testval = 200;
+    };
+    lambdaObj = [&testval]() -> int {
+        return testval;
+    };
+    cout<<lambdaObj()<<endl;
+    return 0;
+}
+
+int main(int argc, char *argv[]) {
+    std::function<int(void)> lambdaObj;
+    TestLambdaCapture(lambdaObj);
+    cout<<lambdaObj()<<endl; // 这里会输出一个随机值，因为lambda捕获的变量已经被其它函数调用栈覆盖
+}
+
+#+END_SRC
+
+** 返回值
+   lambda通过->符号注明返回值类型 比如 []()->int{} 返回int类型
+   相对于普通函数，lambda有两点需要注意
+   1. 如果不接受任何参数，lambda的参数列表可以忽略，所以最简单的lambda表达式是 []{}
+   2. lambda的返回类型可以通过lambda进行推断得到，但是情况不能太复杂
+
+
+** lambda的类型
+   lambda可以声明为一个auto或 std::function<R(AL)>类型的变量，其中R是lambda的返回类型，AL是他的参数列表
+
 
