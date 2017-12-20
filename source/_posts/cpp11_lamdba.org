@@ -77,7 +77,7 @@ int main(int argc, char *argv[]) {
    1. [] : 空捕获列表,表示在lambda中无法使用外层上下文中的任何局部名字。这种情况数据只能从参数和非局部变量获得
    2. [&] : 通过引用隐式捕获,所有外层局部变量都可以通过引用方式访问
    3. [=] : 通过值隐式捕获,所有名字都指向外层局部变量的副本
-   4. [捕获列表] : 显示捕获，捕获列表是通过值或者引用的方式捕获外层局部变量的名字列表，以&为前缀的变量名字通过引用捕获，其他变量通过值捕获，捕获列表中可以出现this,或者紧跟...的名字表示元素
+   4. [捕获列表] : 显示捕获，捕获列表是通过值或者引用的方式捕获外层局部变量的名字列表，以&为前缀的变量名字通过引用捕获，其他变量通过值捕获，捕获列表中可以出现this,或者紧跟...的名字表示元素(可变实参)
    5. [&,捕获列表] : 对于名字没有出现在捕获列表中的外层局部变量，通过引用方式捕获。列表的名字不能以&为前缀，捕获列表中的变量全部通过值的方式捕获
    6. [=,捕获列表] : 对于名字没有出现在捕获列表中的外层局部变量，通过值隐式捕获。捕获列表中不允许包含this，列出的名字必须以&为前缀。捕获列表中的变量名通过引用方式捕获。
 
@@ -108,6 +108,8 @@ int main(int argc, char *argv[]) {
     std::function<int(void)> lambdaObj;
     TestLambdaCapture(lambdaObj);
     cout<<lambdaObj()<<endl; // 这里会输出一个随机值，因为lambda捕获的变量已经被其它函数调用栈覆盖
+
+    int (*testFunPtr)(int) = [](int a) -> int { return a; };
 }
 
 #+END_SRC
@@ -120,6 +122,28 @@ int main(int argc, char *argv[]) {
 
 
 ** lambda的类型
-   lambda可以声明为一个auto或 std::function<R(AL)>类型的变量，其中R是lambda的返回类型，AL是他的参数列表
+   lambda可以声明为一个auto或 std::function<R(AL)>类型的变量，其中R是lambda的返回类型，AL是他的参数列表。
+   当lambda未捕获任何外层变量的时候，他可以简单的通过一个相应类型的函数指针存储
+
+** lambda和this
+   当在类成员函数中使用lambda的时候可能希望访问类的成员变量，这个时候可以通过捕获this的方式实现，但是注意[this]和[=]互不兼容,且因为this是指针，所以成员变量全部是引用方式访问。
 
 
+
+#+BEGIN_SRC cpp
+
+class TestLambdaThisCap {
+private:
+    int testa;
+public:
+    std::function<int(void)> testfunc() { return [this]()->int { return testa; };}
+};
+
+int main(int argc, char *argv[]) {
+    TestLambdaThisCap test;
+    std::function<int(void)> testl = test.testfunc();
+    int reval = testl(); //注意这里调用testl的时机不能超出test对象的生命周期，否则this为垂悬指针
+
+}
+
+#+END_SRC
