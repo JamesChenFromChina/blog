@@ -128,7 +128,8 @@ int main(int argc, char *argv[]) {
 ** lambda和this
    当在类成员函数中使用lambda的时候可能希望访问类的成员变量，这个时候可以通过捕获this的方式实现，但是注意[this]和[=]互不兼容,且因为this是指针，所以成员变量全部是引用方式访问。
 
-
+** mutable的lambda
+   通过在函数列表后标注mutable可以限定lambda的函数体内是否可以对拷贝捕获的变量进行修改
 
 #+BEGIN_SRC cpp
 
