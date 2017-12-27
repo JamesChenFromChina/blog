@@ -1178,8 +1178,65 @@ int test_initializer() {
  
 *** 构造
     用值e构造一个类型为T的值可以表示为 T{e}
-      
+    T{v}的好处是只执行行为良好的类型转换，不会发生窄化或截断除非有明确的T类型构造函数接收此转换
+    显式构造的未命名对象是临时对象，生命周期限于表达式
+    T{} 表示为类型T的默认值
+      * 内置类型初始化为0值
+      * 用户自定义类型则执行默认构造函数
+   
+#+BEGIN_SRC cpp
 
+class DefaultSubClass {
+   public:
+    DefaultSubClass() { cout << "default sub" << endl; }
+};
+
+class DefaultInit {
+   private:
+    DefaultSubClass sub;
+   public:
+    DefaultInit() = delete;
+    DefaultInit(DefaultInit &org) {}
+};
+
+class BaseClass1 {
+   public:
+    void Hello() { cout << "hello baseclass1" << endl; }
+};
+
+class BaseClass2 {
+   public:
+    virtual void Hello() { cout << "hello baseclass2" << endl; }
+};
+
+class DerivedClass : public BaseClass2 {
+private:
+    int x;
+public:
+    virtual void Hello() { cout << "hello derived class x is " << x << endl; }
+};
+
+int main(int argc, char *argv[]) {
+    //DefaultInit def = DefaultInit{}; // error: call to deleted constructor of 'DefaultInit'
+    double a = 100.123; int b = static_cast<int>(a);
+    BaseClass2 c2;
+    // BaseClass1 c1 = static_cast<BaseClass1>(c2); // error: no matching conversion for static_cast from 'BaseClass2' to 'BaseClass1'
+    // BaseClass1 *pc1 = static_cast<BaseClass1 *>(&c2); // error: static_cast from 'BaseClass2 *' to 'BaseClass1 *', which are not related by inheritance, is not allowed
+
+    DerivedClass *pd1 = static_cast<DerivedClass *>(&c2);
+    DerivedClass *pd2 = dynamic_cast<DerivedClass *>(&c2); //如果不存在任何virtual函数则类似转换会报错 error: 'BaseClass2' is not polymorphic
+    DerivedClass d3;
+    BaseClass2 *pb1 = &d3;
+    DerivedClass *pd3 = dynamic_cast<DerivedClass *>(pb1); 
+    DerivedClass *pd4 = dynamic_cast<DerivedClass *>(&c2); 
+    pd4->Hello();
+
+}
+#+END_SRC
+
+*** 命名转换
+    显示类型转换也成为强制类型转换。命名转换的基本思想是令类型转换的含义更明显，让程序员表达他的真正意图
+    * static_cast 执行关联类型之间的转换，
 
 * 小细节
   * 抽象函数的调用需要使用指针或引用操作对象的主要原因是执行抽象任务的代码无法判断对象属于那个具体的实现，所以编译器对操作对象需要的空间大小一无所知，无法从栈上分配合理的空间。
