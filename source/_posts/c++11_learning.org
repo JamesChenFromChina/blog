@@ -1236,7 +1236,45 @@ int main(int argc, char *argv[]) {
 
 *** 命名转换
     显示类型转换也成为强制类型转换。命名转换的基本思想是令类型转换的含义更明显，让程序员表达他的真正意图
-    * static_cast 执行关联类型之间的转换，
+    * static_cast 执行关联类型之间的转换,包括各种内置类型之间的转换和有继承关系的用户类型之间的转换
+    * reinterpret_cast 处理非关联类型之间的转换
+    * const_cast 参与转换的类型仅在const修饰符及volatile修饰符上有所区别
+    * dynamic_cast 执行指针或者引用类型层次体系的类型转换，并执行运行时检查
+
+
+*** C风格的转换
+    (T)e 比较任性没有检查机制
+
+*** 函数形式的转换
+    T(e) 对于内置类型该操作类似于(T)e. 
+
+
+* 函数
+** 函数声明
+
+#+BEGIN_SRC cpp
+
+struct S {
+    [[noreturn]] virtual inline auto f(const unsigned long int *const) -> void const noexcept
+}
+
+#+END_SRC
+   限定符说明:
+   | 函数名字      |                                                            | 必选   |
+   | 参数列表      | 可以为空()                                                 | 必选   |
+   | 返回类型      | 可以是void,可以使前置或后置形式(使用auto)                  | 必选　 |
+   | inline        | 表示一种愿望:通过内联函数体实现函数调用                    | 可选   |
+   | constexpr     | 表示当给定常量表达式作为参数时，应该可以在编译时对函数求值 | 可选   |
+   | noexcept      | 表示函数不允许抛出异常                                     | 可选   |
+   | 链接说明      | 例如static                                                 | 可选   |
+   | [[noreturn] ] | 该函数不会用常规的调用/返回机制返回结果                    | 可选   |
+   | virtual       | 成员函数，函数可以被派生类覆盖                             | 可选   |
+   | override      | 成员函数，函数必须覆盖基类中的一个虚函数                   | 可选   |
+   | final         | 成员函数，函数不能被派生类覆盖                             | 可选   |
+   | static        | 成员函数，函数不与某一特定对象关联                         | 可选   |
+   | const         | 成员函数，函数不能修改其对象的内容                         | 可选   |
+  
+** 函数定义
 
 * 小细节
   * 抽象函数的调用需要使用指针或引用操作对象的主要原因是执行抽象任务的代码无法判断对象属于那个具体的实现，所以编译器对操作对象需要的空间大小一无所知，无法从栈上分配合理的空间。
@@ -1245,4 +1283,8 @@ int main(int argc, char *argv[]) {
 #+BEGIN_SRC cpp
     // const int a; // error: uninitialized const ‘a’ [-fpermissive]
 #+END_SRC
+
+
+
+
 
