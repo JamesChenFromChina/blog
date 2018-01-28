@@ -62,13 +62,137 @@ $gdb vmlinux
 
 #+END_SRC
 
+* 通过busybox构建rootfs
+  首先肯定是拉取busybox的源代码了 这里使用github的镜像拉取 https://github.com/mirror/busybox.git 这次使用的版本是 1_26_stable 
+
+  然后构建一个目录用于创建rootfs，使用dd为镜像分配空间后使用 mkfs 构建文件系统
 
     
+#+BEGIN_SRC shell
+
+chenpeng@CPVM1604:~$ cd qemu_linux/
+chenpeng@CPVM1604:qemu_linux$ mkdir build_rootfs
+chenpeng@CPVM1604:qemu_linux$ cd build_rootfs/
+chenpeng@CPVM1604:build_rootfs$ mkdir rootfs
+
+chenpeng@CPVM1604:build_rootfs$ dd if=/dev/zero of=rootfs.img bs=1M count=128
+128+0 records in
+128+0 records out
+134217728 bytes (134 MB, 128 MiB) copied, 0.192371 s, 698 MB/s
+chenpeng@CPVM1604:build_rootfs$ mkfs.ext4 rootfs.img 
+mke2fs 1.42.13 (17-May-2015)
+Discarding device blocks: done                            
+Creating filesystem with 131072 1k blocks and 32768 inodes
+Filesystem UUID: <UUID>
+Superblock backups stored on blocks: 
+8193, 24577, 40961, 57345, 73729
+
+Allocating group tables: done                            
+Writing inode tables: done                            
+Creating journal (4096 blocks): done
+Writing superblocks and filesystem accounting information: done 
+
+chenpeng@CPVM1604:build_rootfs$ sudo mount rootfs.img rootfs
+chenpeng@CPVM1604:build_rootfs$ cd rootfs
+chenpeng@CPVM1604:rootfs$ mkdir dev proc sys   # 构建内核启动必要的目录
+
+#+END_SRC
 
 
+  之后我们编译busybox 并把编译好的结果放到之前做的根文件系统里面
 
 
+#+BEGIN_SRC shell
 
-  
+chenpeng@CPVM1604:busybox$ make menuconfig
+scripts/kconfig/mconf Config.in
+#
+# using defaults found in .config
+#
+
+*** End of configuration.
+*** Execute 'make' to build the project or try 'make help'.
+
+chenpeng@CPVM1604:busybox$ make
+chenpeng@CPVM1604:busybox$ make install
+chenpeng@CPVM1604:busybox$ cd _install/
+chenpeng@CPVM1604:_install$ cp -rf * ~/qemu_linux/build_rootfs/rootfs/
+
+#+END_SRC
+
+  现在万事俱备 只需要启动qemu即可
 
 
+#+BEGIN_SRC shell
+
+sudo qemu-system-x86_64 -kernel linux/arch/x86_64/boot/bzImage -hda ./rootfs.img -append "root=/dev/sda"
+
+
+#+END_SRC
+
+
+  上面的命令可能会出发一个qemu的警告
+
+
+WARNING: Image format was not specified for './rootfs.img' and probing guessed raw.
+         Automatically detecting the format is dangerous for raw images, write operations on block 0 will be restricted.
+         Specify the 'raw' format explicitly to remove the restrictions.
+ 
+  这是因为新版的qemu对客户机使用的镜像进行了格式的封装 可以通过 qemu-img来构建这种镜像，具体参见[[https://qemu.weilnetz.de/doc/qemu-doc.html#qemu_005fimg_005finvocation]]
+  可以使用create创建设备，也可以使用convert转换已有镜像，支持的fmt参见 [[https://qemu.weilnetz.de/doc/qemu-doc.html#disk_005fimages_005fformats]]
+  另外对于qcow2格式的挂载 可以通过 qemu-nbd 结合 nbd模块实现
+
+#+BEGIN_SRC sh
+
+chenpeng@CPVM1604:qemu_linux$ modinfo nbd
+filename:       /lib/modules/4.4.0-112-generic/kernel/drivers/block/nbd.ko
+license:        GPL
+description:    Network Block Device
+srcversion:     D7773FD48C9D357360517CA
+depends:        
+intree:         Y
+vermagic:       4.4.0-112-generic SMP mod_unload modversions 
+parm:           nbds_max:number of network block devices to initialize (default: 16) (int)
+parm:           max_part:number of partitions per device (default: 0) (int)
+chenpeng@CPVM1604:qemu_linux$ ls /dev/ | grep nbd
+chenpeng@CPVM1604:qemu_linux$ sudo modprobe nbd max_part=16
+chenpeng@CPVM1604:qemu_linux$ ls /dev/ | grep nbd
+nbd0
+nbd1
+nbd10
+nbd11
+nbd12
+nbd13
+nbd14
+nbd15
+nbd2
+nbd3
+nbd4
+nbd5
+nbd6
+nbd7
+nbd8
+nbd9
+
+chenpeng@CPVM1604:qemu_linux$ sudo qemu-nbd -c /dev/nbd0 rootfs.img.qcow2 
+chenpeng@CPVM1604:qemu_linux$ sudo mount /dev/nbd0 rootfs
+chenpeng@CPVM1604:qemu_linux$ cd rootfs/
+chenpeng@CPVM1604:rootfs$ ls
+bin  dev  etc  linuxrc  lost+found  proc  sbin  sys  usr
+chenpeng@CPVM1604:rootfs$ cd etc/
+chenpeng@CPVM1604:etc$ sudo vim fstab 
+chenpeng@CPVM1604:etc$ cd ..
+chenpeng@CPVM1604:rootfs$ cd ..
+
+chenpeng@CPVM1604:qemu_linux$ sudo qemu-nbd -d /dev/nbd0  ##不用了之后通过这种方法断开连接
+/dev/nbd0 disconnected
+
+#+END_SRC
+
+或者考虑使用drive参数指定镜像，给定fmt信息
+
+#+BEGIN_SRC sh
+
+qemu-system-x86_64 -drive format=raw,file=x86-64.img 
+
+#+END_SRC

@@ -1313,7 +1313,11 @@ auto product(const vector<T> &x, const vector<U> &y) -> decltype(x+y); // 后置
 
 #+END_SRC
 
-*** 局部变量
+*** 标号的作用于是整个函数
+
+*** 参数传递
+    函数调用使用实参初始化形参，参数传递语义与初始化语义一致（拷贝初始化）
+
 
 
 * 小细节
