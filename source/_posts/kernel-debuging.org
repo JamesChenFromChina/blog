@@ -1,5 +1,5 @@
 #+TITLE: Linux 内核学习笔记（一）编译、调试、扩展
-#+DATE: 2017-06-14
+#+DATE: 2018-01-31
 #+LAYOUT: post
 #+TAGS: kernel linux
 #+CATEGORIES: kernel
@@ -110,8 +110,8 @@ scripts/kconfig/mconf Config.in
 # using defaults found in .config
 #
 
-*** End of configuration.
-*** Execute 'make' to build the project or try 'make help'.
+ End of configuration.
+ Execute 'make' to build the project or try 'make help'.
 
 chenpeng@CPVM1604:busybox$ make
 chenpeng@CPVM1604:busybox$ make install
@@ -142,7 +142,7 @@ WARNING: Image format was not specified for './rootfs.img' and probing guessed r
   可以使用create创建设备，也可以使用convert转换已有镜像，支持的fmt参见 [[https://qemu.weilnetz.de/doc/qemu-doc.html#disk_005fimages_005fformats]]
   另外对于qcow2格式的挂载 可以通过 qemu-nbd 结合 nbd模块实现
 
-#+BEGIN_SRC sh
+#+BEGIN_SRC shell
 
 chenpeng@CPVM1604:qemu_linux$ modinfo nbd
 filename:       /lib/modules/4.4.0-112-generic/kernel/drivers/block/nbd.ko
@@ -191,8 +191,96 @@ chenpeng@CPVM1604:qemu_linux$ sudo qemu-nbd -d /dev/nbd0  ##不用了之后通�
 
 或者考虑使用drive参数指定镜像，给定fmt信息
 
-#+BEGIN_SRC sh
+#+BEGIN_SRC shell
 
 qemu-system-x86_64 -drive format=raw,file=x86-64.img 
 
 #+END_SRC
+
+
+
+* 构建内核模块
+  内核在运行的时候可以通过模块的方式动态的插入代码，这使得linux规避了一些宏内核的缺陷，下面介绍一个简单的内核模块
+
+
+hello.c:
+
+#+BEGIN_SRC c
+
+#include <linux/init.h>
+#include <linux/module.h>
+#include <linux/kernel.h>
+
+static int hello_init(void) {
+    printk(KERN_ALERT "I bear a charmed life. \n");
+    return 0;
+}
+
+static void hello_exit(void) {
+    printk(KERN_ALERT "Out, out, brief chandle! \n");
+}
+
+module_init(hello_init);
+module_exit(hello_exit);
+
+
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("Paulus");
+MODULE_DESCRIPTION("A hello, World Module");
+
+
+#+END_SRC
+
+编译他的Makefile十分简单，内容只有一行
+
+
+#+BEGIN_SRC Makefile
+
+obj-m := hello.o
+
+#+END_SRC
+
+然后在他的目录使用下面的命令进行编译
+
+
+#+BEGIN_SRC shell
+
+make -C ${KERNEL_PATH} SUBDIRS=$PWD modules
+
+#+END_SRC
+
+其中${KERNEL_PATH}是你内核源代码的路径, 之后会在目录中生成一些内核模块相关文件，主要是 hello.ko
+可以使用 modinfo查看模块的信息,内容如下
+
+#+BEGIN_SRC shell
+chenpeng@CPVM1604:kernel_hacking$ cat ./automake.sh
+#!/bin/sh
+KERNEL_PATH=$1
+make -C ${KERNEL_PATH} SUBDIRS=$PWD modules
+
+chenpeng@CPVM1604:kernel_hacking$ ./automake.sh ~/Documents/linux/
+make: Entering directory '/home/chenpeng/Documents/linux'
+  CC [M]  /home/chenpeng/Documents/GitDir/kernel_hacking/hello.o
+  Building modules, stage 2.
+  MODPOST 1 modules
+  CC      /home/chenpeng/Documents/GitDir/kernel_hacking/hello.mod.o
+  LD [M]  /home/chenpeng/Documents/GitDir/kernel_hacking/hello.ko
+make: Leaving directory '/home/chenpeng/Documents/linux'
+
+chenpeng@CPVM1604:kernel_hacking$ modinfo hello.ko
+filename:       /home/chenpeng/Documents/GitDir/kernel_hacking/hello.ko
+description:    A hello, World Module
+author:         Paulus
+license:        GPL
+srcversion:     46E6DB698BDC2CC2B13A718
+depends:        
+vermagic:       4.4.0 SMP mod_unload modversions 
+
+#+END_SRC
+
+下一节我们研究如何在qemu中调试内核模块
+
+
+
+
+
