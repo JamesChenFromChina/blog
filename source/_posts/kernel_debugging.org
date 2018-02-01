@@ -1,4 +1,4 @@
-#+TITLE: Linux 内核学习笔记（一）编译、调试、扩展
+#+TITLE: Linux 内核学习笔记（一）编译
 #+DATE: 2018-01-31
 #+LAYOUT: post
 #+TAGS: kernel linux
@@ -192,10 +192,11 @@ chenpeng@CPVM1604:qemu_linux$ sudo qemu-nbd -d /dev/nbd0  ##不用了之后通�
 
 #+BEGIN_SRC shell
 
-qemu-system-x86_64 -drive format=raw,file=x86-64.img 
+sudo qemu-system-x86_64 -curses -kernel linux/arch/x86_64/boot/bzImage -drive if=ide,index=1,format=raw,file=rootfs.img -append "root=/dev/sda rootfstype=ext4 rw"
 
 #+END_SRC
 
+如果是使用 -curses启动的qemu则使用alt+2切换到控制台
 
 
 * 构建内核模块
