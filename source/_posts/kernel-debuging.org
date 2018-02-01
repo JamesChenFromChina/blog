@@ -125,8 +125,7 @@ chenpeng@CPVM1604:_install$ cp -rf * ~/qemu_linux/build_rootfs/rootfs/
 
 #+BEGIN_SRC shell
 
-sudo qemu-system-x86_64 -kernel linux/arch/x86_64/boot/bzImage -hda ./rootfs.img -append "root=/dev/sda"
-
+sudo qemu-system-x86_64 -kernel linux/arch/x86_64/boot/bzImage -hda ./rootfs.img -append "root=/dev/sda rootfstype=ext4 rw"
 
 #+END_SRC
 
