@@ -15,6 +15,8 @@
 
 ** 内核裁剪编译
     进入下载的内核目录，输入 make defconfig 即可生成默认的内核配置。或者使用 make menuconfig 开启图形化界面配置内核功能，内核内部支持很多特性和驱动，可以在这里进行裁剪。之后使用 make -j16 开始编译，编译的进程数量通过参数-j 给出,可以根据自己的 cpu 数量进行调整
+    这里注意最好关闭内核模块的签名机制，不然可能到时候后面模块加载的时候一些异常的输出，可以参见
+[[https://wiki.gentoo.org/wiki/Signed_kernel_module_support]] 得到必要的信息
 
 #+NAME: compile kernel
 #+BEGIN_SRC shell
