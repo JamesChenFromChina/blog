@@ -88,3 +88,15 @@ org:
   cachedir: './hexo-org-cache/'
 
 
+math:
+  engine: 'mathjax'
+  mathjax:
+    src: 'http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML'
+    config:
+      {
+         tex2jax: {
+            inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+            skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+            processEscapes: true
+         }
+      }
